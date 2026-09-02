@@ -1,0 +1,193 @@
+# Configuration for Offline AI Backend Foundation
+
+models_dir: "models"
+results_csv: "results/results.csv"
+num_threads: 2
+sample_rate: 16000
+log_level: "INFO"
+
+models:
+  stt:
+    # -------------------------------------------------------------
+    # 1. AI4Bharat IndicConformer (INT8 ONNX via sherpa-onnx)
+    # -------------------------------------------------------------
+    hi:
+      name: "indicconformer"
+      version: "1.0.0"
+      language: "hi"
+      path: "models/stt/hi/model.int8.onnx"
+      tokens_path: "models/stt/tokens.txt"
+      quantization: "int8"
+      format: "onnx"
+      architecture: "Conformer-CTC"
+      runtime: "sherpa-onnx"
+      source: "AI4Bharat / parismitaglobalsolutions"
+      expected_sample_rate: 16000
+
+    ta:
+      name: "indicconformer"
+      version: "1.0.0"
+      language: "ta"
+      path: "models/stt/ta/model.int8.onnx"
+      tokens_path: "models/stt/tokens.txt"
+      quantization: "int8"
+      format: "onnx"
+      architecture: "Conformer-CTC"
+      runtime: "sherpa-onnx"
+      source: "AI4Bharat / parismitaglobalsolutions"
+      expected_sample_rate: 16000
+
+    te:
+      name: "indicconformer"
+      version: "1.0.0"
+      language: "te"
+      path: "models/stt/te/model.int8.onnx"
+      tokens_path: "models/stt/tokens.txt"
+      quantization: "int8"
+      format: "onnx"
+      architecture: "Conformer-CTC"
+      runtime: "sherpa-onnx"
+      source: "AI4Bharat / parismitaglobalsolutions"
+      expected_sample_rate: 16000
+
+    en:
+      name: "indicconformer"
+      version: "1.0.0"
+      language: "en"
+      path: "models/stt/en/model.int8.onnx"
+      tokens_path: "models/stt/tokens.txt"
+      quantization: "int8"
+      format: "onnx"
+      architecture: "Conformer-CTC"
+      runtime: "sherpa-onnx"
+      source: "AI4Bharat / parismitaglobalsolutions"
+      expected_sample_rate: 16000
+
+    # -------------------------------------------------------------
+    # 2. OpenAI Whisper Tiny (INT8 CTranslate2 via faster-whisper)
+    # -------------------------------------------------------------
+    whisper_tiny_hi:
+      name: "whisper"
+      model_size: "tiny"
+      version: "openai-whisper-tiny"
+      language: "hi"
+      path: "models/whisper/tiny"
+      quantization: "int8"
+      format: "ctranslate2"
+      architecture: "Encoder-Decoder-Transformer"
+      runtime: "ctranslate2"
+      source: "OpenAI / Systran"
+      expected_sample_rate: 16000
+
+    whisper_tiny_ta:
+      name: "whisper"
+      model_size: "tiny"
+      version: "openai-whisper-tiny"
+      language: "ta"
+      path: "models/whisper/tiny"
+      quantization: "int8"
+      format: "ctranslate2"
+      architecture: "Encoder-Decoder-Transformer"
+      runtime: "ctranslate2"
+      source: "OpenAI / Systran"
+      expected_sample_rate: 16000
+
+    whisper_tiny_te:
+      name: "whisper"
+      model_size: "tiny"
+      version: "openai-whisper-tiny"
+      language: "te"
+      path: "models/whisper/tiny"
+      quantization: "int8"
+      format: "ctranslate2"
+      architecture: "Encoder-Decoder-Transformer"
+      runtime: "ctranslate2"
+      source: "OpenAI / Systran"
+      expected_sample_rate: 16000
+
+    # -------------------------------------------------------------
+    # 3. OpenAI Whisper Small (INT8 CTranslate2 via faster-whisper)
+    # -------------------------------------------------------------
+    whisper_small_hi:
+      name: "whisper"
+      model_size: "small"
+      version: "openai-whisper-small"
+      language: "hi"
+      path: "models/whisper/small"
+      quantization: "int8"
+      format: "ctranslate2"
+      architecture: "Encoder-Decoder-Transformer"
+      runtime: "ctranslate2"
+      source: "OpenAI / Systran"
+      expected_sample_rate: 16000
+
+    whisper_small_ta:
+      name: "whisper"
+      model_size: "small"
+      version: "openai-whisper-small"
+      language: "ta"
+      path: "models/whisper/small"
+      quantization: "int8"
+      format: "ctranslate2"
+      architecture: "Encoder-Decoder-Transformer"
+      runtime: "ctranslate2"
+      source: "OpenAI / Systran"
+      expected_sample_rate: 16000
+
+    whisper_small_te:
+      name: "whisper"
+      model_size: "small"
+      version: "openai-whisper-small"
+      language: "te"
+      path: "models/whisper/small"
+      quantization: "int8"
+      format: "ctranslate2"
+      architecture: "Encoder-Decoder-Transformer"
+      runtime: "ctranslate2"
+      source: "OpenAI / Systran"
+      expected_sample_rate: 16000
+
+    # -------------------------------------------------------------
+    # 4. Meta MMS ASR (FP32 PyTorch via transformers)
+    # -------------------------------------------------------------
+    mms_hi:
+      name: "mms"
+      version: "facebook/mms-1b-all"
+      language: "hi"
+      mms_lang_code: "hin"
+      path: "models/mms/mms-1b-all"
+      quantization: "fp32"
+      format: "pytorch"
+      architecture: "Wav2Vec2-CTC"
+      runtime: "transformers-torch"
+      source: "Meta AI"
+      expected_sample_rate: 16000
+
+    mms_ta:
+      name: "mms"
+      version: "facebook/mms-1b-all"
+      language: "ta"
+      mms_lang_code: "tam"
+      path: "models/mms/mms-1b-all"
+      quantization: "fp32"
+      format: "pytorch"
+      architecture: "Wav2Vec2-CTC"
+      runtime: "transformers-torch"
+      source: "Meta AI"
+      expected_sample_rate: 16000
+
+    mms_te:
+      name: "mms"
+      version: "facebook/mms-1b-all"
+      language: "te"
+      mms_lang_code: "tel"
+      path: "models/mms/mms-1b-all"
+      quantization: "fp32"
+      format: "pytorch"
+      architecture: "Wav2Vec2-CTC"
+      runtime: "transformers-torch"
+      source: "Meta AI"
+      expected_sample_rate: 16000
+
+  tts: {}
+  vad: {}

@@ -1,0 +1,61 @@
+audio_path,duration,language,dataset_name,split,noise_condition,speaker_id,reference_text
+data/kathbath/clean/wav_16k/hindi/844424932711187-645-f.wav,3.575,hi,kathbath,test_known,clean,645,दुनिया के तमाम देश भारत के साथ इस मसले पर खड़े हैं
+data/kathbath/clean/wav_16k/hindi/844424930600419-888-f.wav,3.923,hi,kathbath,test_known,clean,888,ऐसे महान समाजसुधारकों ने जन सेवा को केंद्र में रखा
+data/kathbath/clean/wav_16k/hindi/844424930599225-3-f.wav,6.106,hi,kathbath,test_known,clean,3,इस इवेंट में सैफ अली खान की लाड़ली बेटी सारा अली खान भी पहुंची
+data/kathbath/clean/wav_16k/hindi/844424932732959-645-f.wav,3.319,hi,kathbath,test_known,clean,645,संग्रहालय देखने के बाद अंसारी अंगकोर वाट मंदिर गए
+data/kathbath/clean/wav_16k/hindi/844424930805864-277-f.wav,4.039,hi,kathbath,test_known,clean,277,दूध में भरपूर मात्रा में कैल्शियम पाया जाता है
+data/kathbath/clean/wav_16k/hindi/844424930639285-326-f.wav,4.411,hi,kathbath,test_known,clean,326,यहां पर भी लाइट व सफाई की पर्याप्त व्यवस्था नहीं मिली
+data/kathbath/clean/wav_16k/hindi/844424932309968-1160-m.wav,6.942,hi,kathbath,test_known,clean,1160,उन्होंने प्रदेश सरकार से हठ्धर्मिता छोड़कर कर्मचारियों की लंबित मांगे पूरी करने की मांग की
+data/kathbath/clean/wav_16k/hindi/844424930615251-326-f.wav,5.595,hi,kathbath,test_known,clean,326,दिवंगत वाईएसआर के शासनकाल में दलित भाइयों को पौधे दिये गये
+data/kathbath/clean/wav_16k/hindi/844424930948752-277-f.wav,5.804,hi,kathbath,test_known,clean,277,अखिलेश सिंह और अंगद के पिता दोनों काफी समय से दोस्त रहे हैं
+data/kathbath/clean/wav_16k/hindi/844424933475171-390-m.wav,5.409,hi,kathbath,test_known,clean,390,राजा और बुन्नू उसके विवाह के गवाह बन जाते हैं
+data/kathbath/clean/wav_16k/tamil/844424933406267-974-m.wav,11.168,ta,kathbath,test_known,clean,974,காற்று குளிர்வித்தல் அமைப்பி உருளையின் வெளிபுறத்தில் வெளிகாற்று நன்கு படும்படி அமைப்பதின் மூலம் உள் எரி பொறி குளிர்விக்க படுகிறது
+data/kathbath/clean/wav_16k/tamil/844424933415526-280-m.wav,5.758,ta,kathbath,test_known,clean,280,இங்கிருந்துதான் காவிரி ஆறானது காவிரி கொள்ளிடம் என இரண்டாகப் பிரிகிறது
+data/kathbath/clean/wav_16k/tamil/844424932705838-146-f.wav,6.454,ta,kathbath,test_known,clean,146,அதன் மையத்தில் நீள்வட்டமான அந்தச் சுனை தொலைவிலேயே ஒளிரும் நீலநிறத்தில் தெரிந்தது
+data/kathbath/clean/wav_16k/tamil/844424930462951-794-f.wav,4.295,ta,kathbath,test_known,clean,794,டோக்லாம் பகுதியில் இருந்து ராணுவத்தை வாபஸ் பெற இரு நாடுகளும் முடிவு
+data/kathbath/clean/wav_16k/tamil/844424932806668-864-m.wav,11.516,ta,kathbath,test_known,clean,864,எதைத்தின்றால் பித்தம் தெளியும் என்பதுபோல் படத்தை ஓட வைக்க என்னவெல்லாம் செய்யலாம் என்று மண்டையைப் பிய்த்துக் கொண்டிருக்கிறார்கள் சினிமாக்காரர்கள்
+data/kathbath/clean/wav_16k/tamil/844424931309280-67-f.wav,6.338,ta,kathbath,test_known,clean,67,மாகாண ரீதியில் அபிவிருத்திகளுக்கு அமைச்சு கொடுக்க முடியுமென்றால் மலையக அபிவிருத்திக்கு ஏன் அமைச்சு பதவி கொடுக்க முடியாது
+data/kathbath/clean/wav_16k/tamil/844424930425009-781-f.wav,5.316,ta,kathbath,test_known,clean,781,இங்கிலாந்தில் மனநிலை பாதிக்கப்பட்ட நோயாளியுடன் செக்ஸ் வைத்து கொண்ட நர்ஸ் பணி நீக்கம்
+data/kathbath/clean/wav_16k/tamil/844424933430501-409-m.wav,4.782,ta,kathbath,test_known,clean,409,அது ஜூபிலி ஆண்டு என்னும் சிறப்புக் கொண்டாட்டத்தின் போது மட்டுமே திறக்கப்படும்
+data/kathbath/clean/wav_16k/tamil/844424931438898-507-f.wav,6.338,ta,kathbath,test_known,clean,507,எனவே அரசாங்கத்திற்கு தான் தண்டனை வழங்கப்பட வேண்டும் என்றும் ரில்வின் சில்வா தெரிவித்துள்ளார்
+data/kathbath/clean/wav_16k/tamil/844424933439412-409-m.wav,6.222,ta,kathbath,test_known,clean,409,வான்வழி மார்க்கமாகச் செல்ல வேண்டும் எனில் கொச்சின் சர்வதேச விமான தளம் அடைந்து பின் சாலை வழியாகப் பயணிக்கலாம்
+data/kathbath/clean/wav_16k/telugu/844424932574515-134-f.wav,9.542,te,kathbath,test_known,clean,134,ఎంతో ప్రతితాత్మకంగా భారీ బడ్జెట్ తో నిర్మిస్తున్న ఈ సినిమాలో ఆమె బలంగా కనిపించడానికి వ్యాయామాలు చేస్తోంది
+data/kathbath/clean/wav_16k/telugu/844424933432663-259-m.wav,10.611,te,kathbath,test_known,clean,259,ఇట్లు వీరు కోల్పోఇన పవన శక్తి ని తిరిగి పొందునటుల చేసినదీ సుదర్శన శతక స్తోత్ర రాజము
+data/kathbath/clean/wav_16k/telugu/844424933436641-259-m.wav,8.915,te,kathbath,test_known,clean,259,అతను అంక్సీ ఇండోపార్థియా పై దాడి చేసి గౌఫు కాబూలు ప్రాంతాన్ని స్వాధీనం చేసుకున్నాడు
+data/kathbath/clean/wav_16k/telugu/844424930729910-1006-f.wav,8.939,te,kathbath,test_known,clean,1006,వాటిని తరలించబడింది మరియు ఒక ప్రత్యేక గిన్నె ప్రోటీన్ లో కదిలించబడినది పదార్థాలు కదిలించు
+data/kathbath/clean/wav_16k/telugu/844424933581909-922-m.wav,7.638,te,kathbath,test_known,clean,922,కంప్లీట్ హిస్టరీ ఆఫ్ ది కర్ణాటిక్ కింగ్స్ అనే గ్రంథంలో ఈ కోటకి సంబంధించి ఒక కథ ప్రచారంలో ఉంది
+data/kathbath/clean/wav_16k/telugu/844424933613272-875-m.wav,5.038,te,kathbath,test_known,clean,875,పత్రికలకు వ్యాసాలూ రాస్తూనే ఉన్నారు అవి అచ్చు అవుతూనే ఉన్నాయి
+data/kathbath/clean/wav_16k/telugu/844424933509948-1166-m.wav,8.567,te,kathbath,test_known,clean,1166,శివాజీ గణేశన్ జయలలిత ప్రధాన తారాగణంగా రూపొందిన ఈ సినిమాకు ఎం ఎస్ విశ్వనాథన్ సంగీతాన్నందించాడు
+data/kathbath/clean/wav_16k/telugu/844424932689201-1057-f.wav,6.849,te,kathbath,test_known,clean,1057,మధ్యప్రదేశ్ మాజీ సీఎం శివరాజ్ సింగ్ చౌహాన్ కూడా ఈ రూటే ఫాలో అవుతున్నట్లు కనిపిస్తున్నారు
+data/kathbath/clean/wav_16k/telugu/844424932551399-134-f.wav,6.268,te,kathbath,test_known,clean,134,ఇక ఈ సినిమాతో మరోసారి తన సత్తా చాటాలని యంగ్ హీరో నిఖిల్ భావిస్తున్నాడు
+data/kathbath/clean/wav_16k/telugu/844424933546157-399-m.wav,6.454,te,kathbath,test_known,clean,399,అర్థ రాత్రి బుడబుక్కల వాని ఆగమనం కొంచెం భయంకరంగా వుంటుంది
+data/kathbath/noisy/wav_16k/hindi/844424933341953-323-m.wav,9.194,hi,kathbath,test_known,noisy,323,औषधियों से उपचार कम लाभप्रद है शल्यक्रिया से दृष्टि लौट सकती है
+data/kathbath/noisy/wav_16k/hindi/844424930995945-590-f.wav,5.641,hi,kathbath,test_known,noisy,590,प्रधानमंत्री मोदी ने नदी पर बने देश के सबसे बड़े पुल का उद्घाटन किया
+data/kathbath/noisy/wav_16k/hindi/844424930527116-261-f.wav,2.994,hi,kathbath,test_known,noisy,261,भारत में लोग आतिफ असलम की आवाज के दीवाने हैें
+data/kathbath/noisy/wav_16k/hindi/844424930754851-252-f.wav,4.48,hi,kathbath,test_known,noisy,252,बनकेइ ने एक बार ध्यान सत्र आयोजित किया जिसमे एक सप्ताह तक ध्यान चला
+data/kathbath/noisy/wav_16k/hindi/844424933476172-1179-m.wav,8.335,hi,kathbath,test_known,noisy,1179,इनके नेतृत्व में विज्ञान एवं प्रौद्योगिकी के क्षेत्र में तमाम उपलब्धियां हासिल की हैं
+data/kathbath/noisy/wav_16k/hindi/844424932310648-384-f.wav,11.075,hi,kathbath,test_known,noisy,384,मिलावटखोरी रोकने लिये शहरों और गाँवों में जनजागरुकता अभियान चलाकर लोगों को जागरुक बनाया जाएगा
+data/kathbath/noisy/wav_16k/hindi/844424931110288-261-f.wav,4.829,hi,kathbath,test_known,noisy,261,इस दौरान कोविड प्रोटोकाल का पूरी तरह से पालन किया जाएगा
+data/kathbath/noisy/wav_16k/hindi/844424930995943-590-f.wav,5.665,hi,kathbath,test_known,noisy,590,साथ ही जैकलीन ने इसके साथ चंदी वाबी के के ज्वेलरी पहनी हुई थी
+data/kathbath/noisy/wav_16k/hindi/844424930744533-252-f.wav,5.409,hi,kathbath,test_known,noisy,252,शुद्ध रूप में यौगिकों काफी आक्रामक गर्म करने के लिए उन्हें इस्तेमाल कर रहे हैं
+data/kathbath/noisy/wav_16k/hindi/844424930875689-329-f.wav,4.666,hi,kathbath,test_known,noisy,329,इस वर्ष विवि एक ही दिन में इस समारोह को करवाएगा
+data/kathbath/noisy/wav_16k/tamil/844424933305461-50-m.wav,10.239,ta,kathbath,test_known,noisy,50,ஒளிப்பதிவாளர் அந்தோணியின் பெயரும் தன் பெயரும் ஒன்றாக இருப்பதால் தவறுகளை தவிர்க்க தனது பெயரை ரூபென் என வைத்துக்கொண்டார்
+data/kathbath/noisy/wav_16k/tamil/844424930622293-1042-f.wav,5.038,ta,kathbath,test_known,noisy,1042,தயாநிதி மாறனின் போன் மோசடியை அம்பலப்படுத்திய அதிகாரிக்கு பென்ஷன் நிறுத்தி வைப்பு
+data/kathbath/noisy/wav_16k/tamil/844424930416665-793-f.wav,6.849,ta,kathbath,test_known,noisy,793,பெண்கள் உடைமாற்றும் அறை நோக்கி சிசிடிவி கேமராவை திருப்பி வைத்த ஃபேப்இந்தியா ஊழியர் சிக்கினார்
+data/kathbath/noisy/wav_16k/tamil/844424930399079-565-m.wav,7.058,ta,kathbath,test_known,noisy,565,சமீபத்தில் இந்த படத்தின் பாடல்கள் வெளியாகி சூப்பர் ஹிட் ஆகியுள்ளது இந்த படத்திற்கு கிடைத்த பாசிட்டிவ்வாக கருதப்படுகிறது
+data/kathbath/noisy/wav_16k/tamil/844424930668550-307-f.wav,6.872,ta,kathbath,test_known,noisy,307,அந்த அணியின் சபீர் ரஹ்மான் சதமடித்தபோதிலும் இதர பேட்ஸ்மேன்கள் சொதப்பியதால் வங்கதேச அணி தோல்வி அடைந்தது
+data/kathbath/noisy/wav_16k/tamil/844424930411934-697-m.wav,7.708,ta,kathbath,test_known,noisy,697,இதுதொடர்பாக பரப்பப்படும் தகவல்களை நம்பி மக்கள் தொகை கணக்கெடுப்பு குறித்து யாரும் அச்சப்படத் தேவையில்லை
+data/kathbath/noisy/wav_16k/tamil/844424930637940-565-m.wav,8.892,ta,kathbath,test_known,noisy,565,புகழ்பெற்ற இந்திய விளையாட்டு வீரர்கள் மற்றும் வீராங்கனைகளின் வாழ்க்கை வரலாறு படங்கள் அவ்வப்போது பாலிவுட்டில் வெளிவந்து வெற்றி பெற்று வருகிறது
+data/kathbath/noisy/wav_16k/tamil/844424933405506-409-m.wav,10.75,ta,kathbath,test_known,noisy,409,சிறையும் செற்றையும் புடையுநள் எழுந்த பருத்திப் பெண்டு அந்த ஓசையைக் கேட்டு குஞ்சை அடைகாக்கும் கோழியும் நடுங்குகிறது
+data/kathbath/noisy/wav_16k/tamil/844424930622361-1042-f.wav,4.898,ta,kathbath,test_known,noisy,1042,நீங்கள் ஏற்கனவே உங்கள் உபகரணங்கள் சொந்தமாக இல்லை என்றால் தொடங்க விலை இருக்க முடியும்
+data/kathbath/noisy/wav_16k/tamil/844424932722282-80-f.wav,5.479,ta,kathbath,test_known,noisy,80,ரோபோக்கள் இசைக்கு ஏற்றாற்போல் நடனமாடியது காண்போர் கண்களுக்கு விருந்தாக அமைந்தது
+data/kathbath/noisy/wav_16k/telugu/844424930691324-1006-f.wav,8.056,te,kathbath,test_known,noisy,1006,చిత్తూరు జిల్లాకు చెందిన ఇతని కుటుంబం కొన్ని సంవత్సరాల క్రితం పశ్చిమగోదావరి జిల్లాకు వచ్చి స్థిరపడింది
+data/kathbath/noisy/wav_16k/telugu/844424933505750-356-m.wav,6.245,te,kathbath,test_known,noisy,356,మద్రాసు ప్రెసిడెన్సీ లో కాంగ్రెస్ కు ప్రత్యామ్నాయ పార్టీ ఇదొక్కటే
+data/kathbath/noisy/wav_16k/telugu/844424930397662-1103-f.wav,12.073,te,kathbath,test_known,noisy,1103,ఈ కథ కొత్తవారితో చేస్తే బాగుంటుందని వారికి నటనతో మెలకువలు నేర్పించడం జరిగింది
+data/kathbath/noisy/wav_16k/telugu/844424932688150-1057-f.wav,5.711,te,kathbath,test_known,noisy,1057,అయితే హడావుడిగా కాకుండా కాస్త నిదానంగా స్టేట్ ఎలక్షన్ కమిషన్ జాబితా రూపొందిస్తుంది
+data/kathbath/noisy/wav_16k/telugu/844424931065380-407-f.wav,5.084,te,kathbath,test_known,noisy,407,పిల్లలకు పెట్టే భోజనం నాణ్యత విషయంలో ఎట్టిపరిస్థితుల్లోనూ రాజీపడొద్దని స్పష్టం చేశారు
+data/kathbath/noisy/wav_16k/telugu/844424931087074-407-f.wav,7.662,te,kathbath,test_known,noisy,407,తేజస్వి బయటకు వెళ్లడానికి ప్రధాన కారణం కౌశల్తో గొడవ పడటం అంటూ ఎక్కువ శాతం జనాలు అంటున్నారు
+data/kathbath/noisy/wav_16k/telugu/844424930402334-72-m.wav,9.891,te,kathbath,test_known,noisy,72,కాగా ఆ వైద్యుడు మర్కజ్ వెల్లివచ్చిన విషయం తెలియగానే రిమ్స్ ఆస్పత్రి డైరెక్టర్ అతనిపై చర్యలు తీసుకున్నారు
+data/kathbath/noisy/wav_16k/telugu/844424931058587-308-f.wav,6.686,te,kathbath,test_known,noisy,308,రాష్ట్రం మొత్తం లాక్ డౌన్ విధించడంతో జన సంచారం లేకుండా పోలీసులు తీవ్రంగా ప్రయత్నిస్తున్న సంగతి తెలిసిందే
+data/kathbath/noisy/wav_16k/telugu/844424933507669-958-m.wav,9.496,te,kathbath,test_known,noisy,958,వాయు ఇంధన బాయిలరులో బర్నరులో గాలిని వాయువును మిశ్రమించి ఫర్నేసు అంత వ్యాపించేలా చేసి మండించెదరు
+data/kathbath/noisy/wav_16k/telugu/844424933588724-902-m.wav,7.476,te,kathbath,test_known,noisy,902,శ్యామ్ బెనగళ్ రూపొందించిన జునూన్ సినిమా ప్రదర్శనతో ఈ ఉత్సవం ప్రారంభమైంది
