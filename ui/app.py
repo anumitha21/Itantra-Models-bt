@@ -616,57 +616,183 @@ def page_tts_listening_test():
 
     if synth_btn and selected_text:
         st.divider()
-        st.subheader("Synthesized Audio Comparison")
+        st.subheader("🎧 Synthesized Audio & Intelligibility Comparison")
 
         mgr = get_model_manager()
 
-        col_a, col_b = st.columns(2)
+        # Execute synthesis and STT judge for both models
+        with st.spinner("Synthesizing audio and running IndicConformer round-trip intelligibility check..."):
+            # 1. AI4Bharat Indic-TTS
+            ai4b_error = None
+            audio_ai4b = None
+            synth_time_ai4b = 0.0
+            wer_ai4b = None
+            cer_ai4b = None
+            stt_text_ai4b = ""
+            try:
+                t0 = time.perf_counter()
+                tts_ai4b = mgr.load_tts(lang_code, "ai4bharat_vits")
+                audio_ai4b = tts_ai4b.synthesize(selected_text, language=lang_code)
+                synth_time_ai4b = time.perf_counter() - t0
 
-        # 1. AI4Bharat Indic-TTS
-        with col_a:
-            st.markdown("### 🇮🇳 AI4Bharat Indic-TTS VITS")
-            with st.spinner("Synthesizing with AI4Bharat Indic-TTS..."):
-                try:
-                    start_t = time.perf_counter()
-                    tts_ai4b = mgr.load_tts(lang_code, "ai4bharat_vits")
-                    audio_ai4b = tts_ai4b.synthesize(selected_text, language=lang_code)
-                    synth_time_ai4b = time.perf_counter() - start_t
+                # STT Judge Verification (16kHz)
+                stt_judge = mgr.load_stt(lang_code, "indicconformer")
+                audio_ai4b_16k = audio_ai4b.resample(target_sample_rate=16000)
+                stt_res_ai4b = stt_judge.transcribe(audio_ai4b_16k)
+                stt_text_ai4b = stt_res_ai4b.text
+                wer_ai4b, cer_ai4b = compute_accuracy_metrics(selected_text, stt_text_ai4b)
+            except Exception as e:
+                ai4b_error = str(e)
 
-                    st.audio(audio_ai4b.samples, sample_rate=audio_ai4b.sample_rate)
-                    st.caption(f"⏱️ Latency: `{synth_time_ai4b:.2f}s` | 🎵 Native SR: `{audio_ai4b.sample_rate}Hz` | ⏱️ RTF: `{synth_time_ai4b/audio_ai4b.duration_sec:.3f}`")
-                    st.session_state["synth_ai4b_audio"] = audio_ai4b
-                    st.session_state["synth_ai4b_time"] = synth_time_ai4b
-                except Exception as e:
-                    st.error(f"AI4Bharat synthesis failed: {e}")
+            # 2. Meta MMS-TTS
+            mms_error = None
+            audio_mms = None
+            synth_time_mms = 0.0
+            wer_mms = None
+            cer_mms = None
+            stt_text_mms = ""
+            try:
+                t0 = time.perf_counter()
+                tts_mms = mgr.load_tts(lang_code, "mms_vits")
+                audio_mms = tts_mms.synthesize(selected_text, language=lang_code)
+                synth_time_mms = time.perf_counter() - t0
 
-        # 2. Meta MMS-TTS
-        with col_b:
-            st.markdown("### 🌐 Meta MMS-TTS VITS")
-            with st.spinner("Synthesizing with Meta MMS-TTS..."):
-                try:
-                    start_t = time.perf_counter()
-                    tts_mms = mgr.load_tts(lang_code, "mms_vits")
-                    audio_mms = tts_mms.synthesize(selected_text, language=lang_code)
-                    synth_time_mms = time.perf_counter() - start_t
+                # STT Judge Verification (16kHz)
+                stt_judge = mgr.load_stt(lang_code, "indicconformer")
+                audio_mms_16k = audio_mms.resample(target_sample_rate=16000)
+                stt_res_mms = stt_judge.transcribe(audio_mms_16k)
+                stt_text_mms = stt_res_mms.text
+                wer_mms, cer_mms = compute_accuracy_metrics(selected_text, stt_text_mms)
+            except Exception as e:
+                mms_error = str(e)
 
-                    st.audio(audio_mms.samples, sample_rate=audio_mms.sample_rate)
-                    st.caption(f"⏱️ Latency: `{synth_time_mms:.2f}s` | 🎵 Native SR: `{audio_mms.sample_rate}Hz` | ⏱️ RTF: `{synth_time_mms/audio_mms.duration_sec:.3f}`")
-                    st.session_state["synth_mms_audio"] = audio_mms
-                    st.session_state["synth_mms_time"] = synth_time_mms
-                except Exception as e:
-                    st.error(f"Meta MMS synthesis failed: {e}")
-
+        # Store in session state for persistence across slider adjustments
+        st.session_state["tts_eval_data"] = {
+            "selected_text": selected_text,
+            "lang_code": lang_code,
+            "audio_ai4b": audio_ai4b,
+            "synth_time_ai4b": synth_time_ai4b,
+            "wer_ai4b": wer_ai4b,
+            "cer_ai4b": cer_ai4b,
+            "stt_text_ai4b": stt_text_ai4b,
+            "ai4b_error": ai4b_error,
+            "audio_mms": audio_mms,
+            "synth_time_mms": synth_time_mms,
+            "wer_mms": wer_mms,
+            "cer_mms": cer_mms,
+            "stt_text_mms": stt_text_mms,
+            "mms_error": mms_error,
+        }
         st.session_state["last_evaluated_text"] = selected_text
         st.session_state["last_evaluated_lang"] = lang_code
 
+    # Render detailed evaluation cards if evaluation data is available
+    if "tts_eval_data" in st.session_state and st.session_state["tts_eval_data"]:
+        data = st.session_state["tts_eval_data"]
+        audio_ai4b = data.get("audio_ai4b")
+        synth_time_ai4b = data.get("synth_time_ai4b", 0.0)
+        wer_ai4b = data.get("wer_ai4b")
+        cer_ai4b = data.get("cer_ai4b")
+        stt_text_ai4b = data.get("stt_text_ai4b", "")
+        ai4b_error = data.get("ai4b_error")
+
+        audio_mms = data.get("audio_mms")
+        synth_time_mms = data.get("synth_time_mms", 0.0)
+        wer_mms = data.get("wer_mms")
+        cer_mms = data.get("cer_mms")
+        stt_text_mms = data.get("stt_text_mms", "")
+        mms_error = data.get("mms_error")
+
+        # Top-level Comparative Summary
+        if audio_ai4b and audio_mms:
+            rtf_ai4b = synth_time_ai4b / audio_ai4b.duration_sec if audio_ai4b.duration_sec > 0 else 0.0
+            rtf_mms = synth_time_mms / audio_mms.duration_sec if audio_mms.duration_sec > 0 else 0.0
+            speed_delta = ((rtf_mms - rtf_ai4b) / rtf_mms * 100) if rtf_mms > 0 else 0.0
+
+            st.info(
+                f"📊 **Model Summary Comparison** (`{LANGUAGES.get(data['lang_code'], data['lang_code'].upper())}`):\n\n"
+                f"- **Synthesis Speed**: AI4Bharat (`RTF: {rtf_ai4b:.3f}`) vs. Meta MMS (`RTF: {rtf_mms:.3f}`) "
+                f"— {'AI4Bharat was ' + f'{abs(speed_delta):.1f}% faster' if speed_delta > 0 else 'Meta MMS was ' + f'{abs(speed_delta):.1f}% faster'}.\n"
+                f"- **Acoustic Fidelity**: AI4Bharat native output is **24,000 Hz** (high fidelity) vs. Meta MMS **16,000 Hz** (wideband)."
+            )
+
+        col_a, col_b = st.columns(2, gap="large")
+
+        # 1. AI4Bharat Indic-TTS Card
+        with col_a:
+            with st.container(border=True):
+                st.markdown("### 🇮🇳 AI4Bharat Indic-TTS VITS")
+                st.caption("Architecture: `VITS Acoustic Model` | Precision: `FP32` | Runtime: `sherpa-onnx` | Model Size: `117.6 MB`")
+
+                if ai4b_error:
+                    st.error(f"Synthesis failed: {ai4b_error}")
+                elif audio_ai4b:
+                    st.audio(audio_ai4b.samples, sample_rate=audio_ai4b.sample_rate)
+
+                    # Large Metrics Grid
+                    rtf_ai4b = synth_time_ai4b / audio_ai4b.duration_sec if audio_ai4b.duration_sec > 0 else 0.0
+                    m1, m2 = st.columns(2)
+                    with m1:
+                        st.metric("⏱️ Synthesis Latency", f"{synth_time_ai4b:.2f} s")
+                        st.metric("🎵 Audio Duration", f"{audio_ai4b.duration_sec:.2f} s")
+                    with m2:
+                        st.metric("⚡ Real-Time Factor (RTF)", f"{rtf_ai4b:.3f}", delta="< 1.0 (Real-time)" if rtf_ai4b <= 1.0 else "Slow", delta_color="inverse")
+                        st.metric("🔊 Native Sample Rate", f"{audio_ai4b.sample_rate:,} Hz")
+
+                    st.markdown("---")
+                    st.markdown("##### 🔍 Round-Trip STT Verification (IndicConformer 16kHz)")
+                    if wer_ai4b is not None:
+                        w_col1, w_col2 = st.columns(2)
+                        with w_col1:
+                            st.metric("🎯 Round-Trip WER", f"{wer_ai4b*100:.1f}%")
+                        with w_col2:
+                            st.metric("🔡 Round-Trip CER", f"{cer_ai4b*100:.1f}%" if cer_ai4b is not None else "N/A")
+
+                    st.markdown("**STT Recognized Text:**")
+                    st.code(stt_text_ai4b if stt_text_ai4b else "[No text transcribed]", language=None)
+
+        # 2. Meta MMS-TTS Card
+        with col_b:
+            with st.container(border=True):
+                st.markdown("### 🌐 Meta MMS-TTS VITS")
+                st.caption("Architecture: `VITS Multi-Lingual` | Precision: `FP32` | Runtime: `sherpa-onnx` | Model Size: `108.8 MB`")
+
+                if mms_error:
+                    st.error(f"Synthesis failed: {mms_error}")
+                elif audio_mms:
+                    st.audio(audio_mms.samples, sample_rate=audio_mms.sample_rate)
+
+                    # Large Metrics Grid
+                    rtf_mms = synth_time_mms / audio_mms.duration_sec if audio_mms.duration_sec > 0 else 0.0
+                    m1, m2 = st.columns(2)
+                    with m1:
+                        st.metric("⏱️ Synthesis Latency", f"{synth_time_mms:.2f} s")
+                        st.metric("🎵 Audio Duration", f"{audio_mms.duration_sec:.2f} s")
+                    with m2:
+                        st.metric("⚡ Real-Time Factor (RTF)", f"{rtf_mms:.3f}", delta="< 1.0 (Real-time)" if rtf_mms <= 1.0 else "Slow", delta_color="inverse")
+                        st.metric("🔊 Native Sample Rate", f"{audio_mms.sample_rate:,} Hz")
+
+                    st.markdown("---")
+                    st.markdown("##### 🔍 Round-Trip STT Verification (IndicConformer 16kHz)")
+                    if wer_mms is not None:
+                        w_col1, w_col2 = st.columns(2)
+                        with w_col1:
+                            st.metric("🎯 Round-Trip WER", f"{wer_mms*100:.1f}%")
+                        with w_col2:
+                            st.metric("🔡 Round-Trip CER", f"{cer_mms*100:.1f}%" if cer_mms is not None else "N/A")
+
+                    st.markdown("**STT Recognized Text:**")
+                    st.code(stt_text_mms if stt_text_mms else "[No text transcribed]", language=None)
+
+    # MOS Rating Form
     if "last_evaluated_text" in st.session_state:
         st.divider()
         st.subheader("⭐ Rate Synthesized Audio Quality (MOS)")
 
-        r_col1, r_col2 = st.columns(2)
+        r_col1, r_col2 = st.columns(2, gap="large")
         with r_col1:
             rating_ai4b = st.slider(
-                "AI4Bharat Rating (1-5)",
+                "🇮🇳 AI4Bharat Rating (1-5 Stars)",
                 min_value=1,
                 max_value=5,
                 value=4,
@@ -675,17 +801,17 @@ def page_tts_listening_test():
             )
         with r_col2:
             rating_mms = st.slider(
-                "Meta MMS Rating (1-5)",
+                "🌐 Meta MMS Rating (1-5 Stars)",
                 min_value=1,
                 max_value=5,
-                value=3,
+                value=4,
                 key="rating_mms",
                 help="1 = Unacceptable, 5 = Excellent",
             )
 
         user_comments = st.text_input("Qualitative Notes / Accent Feedback (Optional)", key="mos_comments")
 
-        if st.button("💾 Submit & Record MOS Evaluation", type="primary"):
+        if st.button("💾 Submit & Record MOS Evaluation", type="primary", use_container_width=True):
             record_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
             eval_lang = st.session_state.get("last_evaluated_lang", "hi")
             eval_text = st.session_state.get("last_evaluated_text", "")
