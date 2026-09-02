@@ -37,12 +37,11 @@ logger = get_logger("BenchmarkDatasetRunner")
 DEFAULT_RESULTS_CSV = CFG_ROOT / "results" / "results.csv"
 DEFAULT_MANIFEST_PATH = CFG_ROOT / "dataset" / "manifest.csv"
 
-# Models to evaluate
+# Edge Models to evaluate for STT benchmark matrix
 BENCHMARK_MODELS = [
     "indicconformer",
     "whisper_tiny",
     "whisper_small",
-    "mms",
 ]
 
 TARGET_LANGUAGES = ["hi", "ta", "te"]
@@ -119,6 +118,8 @@ class BenchmarkDatasetRunner:
                     logger.warning(f"    [WARN] Failed during pre-cache of {model_name} ({lang}): {e}")
                 finally:
                     self.model_manager.unload_all()
+                    import gc
+                    gc.collect()
 
         logger.info("Pre-caching complete. All model weights verified on local disk.\n")
 
