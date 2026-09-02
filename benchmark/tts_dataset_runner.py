@@ -30,6 +30,7 @@ from ai_backend.benchmark.metrics import (
     get_process_rss_mb,
     get_gpu_vram_mb,
     get_model_size_mb,
+    EnergyBenchmarkTracker,
 )
 from benchmark.dataset_runner import DEFAULT_RESULTS_CSV, DEFAULT_MANIFEST_PATH
 
@@ -119,21 +120,40 @@ class TTSBenchmarkDatasetRunner:
 
     def load_manifest_sentences(self, language: str, max_samples: Optional[int] = None) -> List[str]:
         """
-        Extract real reference sentences from Kathbath dataset manifest for a target language.
+        Extract real reference sentences from Kathbath dataset manifest and transcripts for a target language.
         """
-        if not self.manifest_path.exists():
-            raise FileNotFoundError(f"Manifest file not found: {self.manifest_path.resolve()}")
-
-        df = pd.read_csv(self.manifest_path, encoding="utf-8")
-        subset = df[(df["language"] == language) & (df["noise_condition"] == "clean")]
-        if subset.empty:
-            subset = df[df["language"] == language]
-
         sentences = []
-        for text in subset["reference_text"].dropna():
-            t = str(text).strip()
-            if t and t != "nan" and t not in sentences:
-                sentences.append(t)
+
+        # 1. Load from manifest.csv (clean and noisy)
+        if self.manifest_path.exists():
+            try:
+                df = pd.read_csv(self.manifest_path, encoding="utf-8")
+                subset = df[df["language"] == language]
+                for text in subset["reference_text"].dropna():
+                    t = str(text).strip()
+                    if t and t != "nan" and t not in sentences:
+                        sentences.append(t)
+            except Exception as e:
+                logger.debug(f"Manifest read error: {e}")
+
+        # 2. If more sentences needed, draw from official Kathbath clean test_known transcripts
+        target_count = max_samples if (max_samples and max_samples > 0) else 30
+        if len(sentences) < target_count:
+            lang_dir_names = {"hi": "hindi", "ta": "tamil", "te": "telugu"}
+            folder = lang_dir_names.get(language, language)
+            trans_path = CFG_ROOT / "data" / "kathbath" / "clean" / "transcripts" / "kb_data_clean_m4a" / folder / "test_known" / "transcription_n2w.txt"
+            if trans_path.exists():
+                try:
+                    for line in trans_path.read_text(encoding="utf-8").strip().splitlines():
+                        parts = line.strip().split(None, 1)
+                        if len(parts) > 1:
+                            t = parts[1].strip()
+                            if t and t not in sentences:
+                                sentences.append(t)
+                                if len(sentences) >= target_count:
+                                    break
+                except Exception as e:
+                    logger.debug(f"Kathbath transcript read error: {e}")
 
         if max_samples and max_samples > 0:
             sentences = sentences[:max_samples]
@@ -341,42 +361,39 @@ class TTSBenchmarkDatasetRunner:
         sample_cers = []
 
         try:
-            tts_engine_comb = mgr_combined.load_tts(language, model_name=model_name)
-            stt_judge = mgr_combined.load_stt(language, model_name="indicconformer")
-            peak_ram_combined = get_process_rss_mb()
-        except Exception as e:
-            logger.error(f"Failed to load combined STT judge for ({model_name}, {language}): {e}")
-            stt_judge = None
+            judge_stt = mgr_combined.load_stt(language, model_name="indicconformer")
+            judge_ram = get_process_rss_mb()
+            if judge_ram > peak_ram_combined:
+                peak_ram_combined = judge_ram
 
-        if stt_judge is not None:
-            for idx, (orig_text, audio) in enumerate(zip(valid_sentences, synth_audios)):
-                # Explicitly resample to 16000Hz mono for IndicConformer STT judge
-                judge_audio = audio.resample(target_sample_rate=16000)
+            judge_tts = mgr_combined.load_tts(language, model_name=model_name)
+            combined_ram = get_process_rss_mb()
+            if combined_ram > peak_ram_combined:
+                peak_ram_combined = combined_ram
 
-                try:
-                    stt_res = stt_judge.transcribe(judge_audio)
-                    retranscribed_text = stt_res.text
-                except Exception as e:
-                    logger.warning(f"STT transcription failed for sample {idx+1}: {e}")
-                    continue
-
+            for audio, ref_text in zip(synth_audios, valid_sentences):
+                audio_16k = audio.resample(16000)
+                stt_res = judge_stt.transcribe(audio_16k)
                 curr_ram = get_process_rss_mb()
                 if curr_ram > peak_ram_combined:
                     peak_ram_combined = curr_ram
 
-                wer, cer = compute_accuracy_metrics(orig_text, retranscribed_text)
+                wer, cer = compute_accuracy_metrics(ref_text, stt_res.text)
                 if wer is not None:
                     sample_wers.append(wer)
                 if cer is not None:
                     sample_cers.append(cer)
 
-        mgr_combined.unload_all()
+        except Exception as e:
+            logger.error(f"Combined STT Judge round-trip evaluation error: {e}")
+        finally:
+            mgr_combined.unload_all()
 
         avg_wer = float(sum(sample_wers) / len(sample_wers)) if sample_wers else None
         avg_cer = float(sum(sample_cers) / len(sample_cers)) if sample_cers else None
         avg_synth_lat = float(sum(synth_latencies) / len(synth_latencies)) if synth_latencies else 0.0
         avg_duration = float(total_audio_duration / len(synth_audios)) if synth_audios else 0.0
-        overall_rtf = (total_synth_latency / total_audio_duration) if total_audio_duration > 0 else 0.0
+        overall_rtf = total_synth_latency / total_audio_duration if total_audio_duration > 0 else 0.0
 
         stt_baseline = self._stt_baseline_wers.get(language)
         tts_attributable_wer = (avg_wer - stt_baseline) if (avg_wer is not None and stt_baseline is not None) else None

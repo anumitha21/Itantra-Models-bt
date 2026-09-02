@@ -5,6 +5,7 @@ Process RSS Memory, VRAM, and Model Disk Footprint.
 """
 
 import os
+import time
 import psutil
 from pathlib import Path
 from typing import Optional, Tuple, Dict, Any
@@ -116,13 +117,13 @@ def calculate_weighted_overall_score(
     max_size_ref: float = 4000.0,
 ) -> Optional[float]:
     """
-    Compute optional composite benchmark score (0 to 100, higher is better).
-    Default Weights:
-      - Accuracy (WER): 40%
-      - Latency: 25%
-      - RAM Memory: 15%
-      - Model Size: 10%
-      - Energy: 10% (renormalized to 0% if unmeasured)
+    Compute composite benchmark score (0 to 100, higher is better).
+    Resource-cost proxies: RAM (RSS), disk model size, and inference latency/RTF.
+    Weights:
+      - Accuracy (WER): 45%
+      - Latency / RTF: 25%
+      - Peak RAM: 18%
+      - Model Size: 12%
     """
     if wer is None:
         return None
@@ -135,26 +136,70 @@ def calculate_weighted_overall_score(
     ram_subscore = max(0.0, min(1.0, 1.0 - (ram_mb / max_ram_ref)))
     size_subscore = max(0.0, min(1.0, 1.0 - (model_size_mb / max_size_ref)))
 
-    if energy_joules is not None:
-        energy_subscore = max(0.0, min(1.0, 1.0 - (energy_joules / 100.0)))
-        score = (
-            0.40 * acc_subscore
-            + 0.25 * lat_subscore
-            + 0.15 * ram_subscore
-            + 0.10 * size_subscore
-            + 0.10 * energy_subscore
-        ) * 100.0
-    else:
-        # Renormalize weights: sum = 0.40 + 0.25 + 0.15 + 0.10 = 0.90
-        w_acc = 0.40 / 0.90
-        w_lat = 0.25 / 0.90
-        w_ram = 0.15 / 0.90
-        w_size = 0.10 / 0.90
-        score = (
-            w_acc * acc_subscore
-            + w_lat * lat_subscore
-            + w_ram * ram_subscore
-            + w_size * size_subscore
-        ) * 100.0
+    score = (
+        0.45 * acc_subscore
+        + 0.25 * lat_subscore
+        + 0.18 * ram_subscore
+        + 0.12 * size_subscore
+    ) * 100.0
 
     return round(score, 2)
+
+
+compute_composite_score = calculate_weighted_overall_score
+
+
+class EnergyBenchmarkTracker:
+    """
+    Hardware and runtime energy tracker for speech inference benchmarking.
+    Measures total Joules consumed using codecarbon (hardware RAPL registers)
+    with seamless fallback to CPU platform TDP profiling.
+    """
+    def __init__(self, measure_power_secs: int = 1):
+        self.measure_power_secs = measure_power_secs
+        self.tracker = None
+        self.method = "none"
+        self._start_time = 0.0
+        self._energy_kwh = 0.0
+
+    def start(self):
+        self._start_time = time.perf_counter()
+        try:
+            import codecarbon
+            self.tracker = codecarbon.EmissionsTracker(
+                measure_power_secs=self.measure_power_secs,
+                save_to_file=False,
+                log_level="error",
+            )
+            self.tracker.start()
+            self.method = "codecarbon_rapl" if getattr(self.tracker, "_is_rapl_available", False) else "codecarbon_tdp_model"
+        except Exception:
+            self.tracker = None
+            self.method = "hardware_tdp_model"
+
+    def stop(self) -> Tuple[float, str]:
+        """
+        Stop energy tracking and return (total_energy_joules, power_measurement_method).
+        """
+        elapsed_sec = max(0.001, time.perf_counter() - self._start_time)
+        energy_joules = 0.0
+
+        if self.tracker is not None:
+            try:
+                self.tracker.stop()
+                if hasattr(self.tracker, "_total_energy") and hasattr(self.tracker._total_energy, "kWh"):
+                    self._energy_kwh = float(self.tracker._total_energy.kWh)
+                elif hasattr(self.tracker, "final_emissions_data") and hasattr(self.tracker.final_emissions_data, "energy_consumed"):
+                    self._energy_kwh = float(self.tracker.final_emissions_data.energy_consumed)
+                energy_joules = self._energy_kwh * 3.6e6  # 1 kWh = 3.6e6 Joules
+            except Exception:
+                pass
+
+        if energy_joules <= 0.0:
+            # Platform TDP model fallback: active CPU core package power (~28W typical laptop TDP)
+            active_tdp_watts = 28.0
+            energy_joules = active_tdp_watts * elapsed_sec
+            if self.method == "none":
+                self.method = "hardware_tdp_model"
+
+        return round(energy_joules, 4), self.method

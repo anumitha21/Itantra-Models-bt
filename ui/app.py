@@ -404,9 +404,12 @@ def page_benchmark_dashboard():
             # Filters
             st.sidebar.markdown("### STT Dashboard Filters")
             all_runs = df_stt["run_id"].dropna().unique().tolist()
-            selected_run = st.sidebar.selectbox("Filter by Run ID", ["All Runs"] + all_runs, index=0, key="stt_run_filter")
+            # Order runs with most recent first
+            all_runs_desc = list(reversed(all_runs))
+            run_options = all_runs_desc + ["All Runs (Aggregate)"]
+            selected_run = st.sidebar.selectbox("Filter by Run ID (Defaults to Latest)", run_options, index=0, key="stt_run_filter")
 
-            if selected_run != "All Runs":
+            if selected_run != "All Runs (Aggregate)":
                 df_stt = df_stt[df_stt["run_id"] == selected_run]
 
             all_langs = df_stt["language"].dropna().unique().tolist()
@@ -431,7 +434,7 @@ def page_benchmark_dashboard():
                 avg_rtf = df_stt["rtf"].dropna().mean()
                 st.metric("Mean RTF", f"{avg_rtf:.3f}" if pd.notnull(avg_rtf) else "N/A")
 
-            tab1, tab2, tab3, tab4 = st.tabs(["Accuracy (WER / CER)", "Speed & Latency (RTF)", "Hardware Footprint (RAM / Disk)", "Overall Weighted Score"])
+            tab1, tab2, tab3, tab4 = st.tabs(["Accuracy (WER / CER)", "Speed & Latency (RTF)", "Hardware Footprint (RAM & Model Size)", "Overall Weighted Score"])
             completed_stt = df_stt[df_stt["status"] == "COMPLETED"].copy()
 
             with tab1:
@@ -468,6 +471,7 @@ def page_benchmark_dashboard():
             st.markdown("### STT Results Data Log")
             st.dataframe(df_stt, use_container_width=True)
 
+
     # -------------------------------------------------------------
     # TAB 2: TTS Benchmark
     # -------------------------------------------------------------
@@ -487,6 +491,15 @@ def page_benchmark_dashboard():
             st.info("No TTS benchmark results found yet in `results/tts_results.csv`. Click above to execute the TTS benchmark runner.")
         else:
             df_tts = pd.read_csv(tts_results_file, encoding="utf-8")
+
+            # TTS Run Filter
+            all_tts_runs = df_tts["run_id"].dropna().unique().tolist()
+            all_tts_runs_desc = list(reversed(all_tts_runs))
+            tts_run_options = all_tts_runs_desc + ["All Runs (Aggregate)"]
+            selected_tts_run = st.selectbox("Select TTS Run ID (Defaults to Latest)", tts_run_options, index=0, key="tts_run_filter")
+
+            if selected_tts_run != "All Runs (Aggregate)":
+                df_tts = df_tts[df_tts["run_id"] == selected_tts_run]
 
             st.info(
                 "ℹ️ **Note on Round-Trip WER**: "
@@ -680,6 +693,9 @@ def page_tts_listening_test():
             DEFAULT_MANUAL_MOS_CSV.parent.mkdir(parents=True, exist_ok=True)
             file_exists = DEFAULT_MANUAL_MOS_CSV.exists()
 
+            # NOTE: Every row recorded in results/manual_mos.csv MUST originate strictly from a real
+            # human evaluator listening to synthesized audio and submitting this interactive form.
+            # Do not inject mock, synthetic, or programmatic ratings into this production artifact.
             with open(DEFAULT_MANUAL_MOS_CSV, "a", newline="", encoding="utf-8") as f:
                 import csv
                 writer = csv.writer(f)

@@ -253,3 +253,10 @@ To execute the offline TTS benchmark matrix runner:
 python benchmark/tts_dataset_runner.py --num-samples 10
 ```
 Outputs are recorded to `results/tts_results.csv`.
+
+---
+
+## 11. Limitations
+
+- **Power & Energy Profiling**: Power/energy consumption was not measured — this benchmark was run without access to hardware energy counters (RAPL/MSR), and no CPU/battery power figures are reported. RAM, model size, and latency/RTF are used as the resource-cost proxies instead.
+

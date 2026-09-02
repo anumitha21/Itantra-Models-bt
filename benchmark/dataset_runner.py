@@ -29,6 +29,7 @@ from ai_backend.benchmark.metrics import (
     get_gpu_vram_mb,
     get_model_size_mb,
     calculate_weighted_overall_score,
+    EnergyBenchmarkTracker,
 )
 
 logger = get_logger("BenchmarkDatasetRunner")
@@ -341,13 +342,12 @@ class BenchmarkDatasetRunner:
         overall_rtf = total_inference_time / total_audio_duration if total_audio_duration > 0 else 0.0
         vram_mb = get_gpu_vram_mb()
 
-        # Weighted score (0 to 100)
+        # Weighted score (0 to 100) based on accuracy, latency, RAM, and model size
         score = calculate_weighted_overall_score(
             wer=avg_wer,
             latency_warm_sec=avg_warm_lat,
             ram_mb=peak_ram,
             model_size_mb=model_size_mb,
-            energy_joules=None,
         )
 
         return EvaluationSummary(
