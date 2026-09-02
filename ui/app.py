@@ -1,12 +1,15 @@
 """
-Streamlit UI for Offline Multi-Model STT Benchmark & Interactive Testing.
+Streamlit UI for Offline Multi-Model STT & TTS Benchmark & Interactive Testing.
 Features:
-  1. Single Test: Upload/record audio or select sample, run multi-model inference, inspect WER/CER/RTF/RAM.
-  2. Benchmark Dashboard: Filterable visualization of results/results.csv with accuracy, latency, RAM, and model size.
+  1. Single STT Test: Upload/record audio or select sample, run multi-model inference, inspect WER/CER/RTF/RAM.
+  2. Benchmark Dashboard: Filterable visualization of STT and TTS benchmark results with accuracy, latency, RAM, and model size.
+  3. TTS Listening Test: Side-by-side interactive speech synthesis for AI4Bharat Indic-TTS & Meta MMS-TTS with manual 1-5 star MOS evaluation.
 """
 
+import os
 import sys
 import time
+import datetime
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -18,6 +21,16 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from ai_backend.core.config import AppConfig, PROJECT_ROOT as CFG_ROOT
 from ai_backend.core.types import AudioInput
+import ai_backend.core.logging as backend_logging
+import importlib
+try:
+    importlib.reload(backend_logging)
+except Exception:
+    pass
+
+get_logger = getattr(backend_logging, "get_logger", None)
+DEFAULT_LOG_FILE = getattr(backend_logging, "DEFAULT_LOG_FILE", CFG_ROOT / "logs" / "app.log")
+get_recent_logs = getattr(backend_logging, "get_recent_logs", lambda: [])
 from ai_backend.pipeline.speech_pipeline import SpeechPipeline
 from ai_backend.models.model_manager import ModelManager
 from ai_backend.benchmark.metrics import (
@@ -27,9 +40,13 @@ from ai_backend.benchmark.metrics import (
     calculate_weighted_overall_score,
 )
 from benchmark.dataset_runner import BenchmarkDatasetRunner, DEFAULT_RESULTS_CSV, DEFAULT_MANIFEST_PATH
+from benchmark.tts_dataset_runner import TTSBenchmarkDatasetRunner, DEFAULT_TTS_RESULTS_CSV
+
+DEFAULT_MANUAL_MOS_CSV = CFG_ROOT / "results" / "manual_mos.csv"
+logger = get_logger("StreamlitUI") if get_logger else None
 
 st.set_page_config(
-    page_title="Offline STT Benchmark (Indic Languages)",
+    page_title="ITANTRA Indic STT & TTS Benchmark",
     page_icon="🎙️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -67,35 +84,43 @@ st.markdown("""
         font-size: 0.8rem;
         font-weight: 600;
     }
+    .stAlert {
+        border-radius: 8px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 
-@st.cache_resource
-def get_app_config():
-    return AppConfig.load()
-
-
-@st.cache_resource
 def get_model_manager():
-    return ModelManager(get_app_config(), benchmark_mode=False)
+    """Retrieve ModelManager in benchmark mode for UI testing with dynamic reload safeguard."""
+    mgr = st.session_state.get("model_manager")
+    if mgr is None or not hasattr(mgr, "load_tts"):
+        import ai_backend.models.model_manager as mm_mod
+        try:
+            importlib.reload(mm_mod)
+        except Exception:
+            pass
+        config = AppConfig.load()
+        mgr = mm_mod.ModelManager(config, benchmark_mode=True)
+        st.session_state["model_manager"] = mgr
+    return mgr
 
 
 AVAILABLE_MODELS = {
     "indicconformer": {
-        "display_name": "AI4Bharat IndicConformer",
-        "runtime": "sherpa-onnx (ONNX)",
+        "display_name": "AI4Bharat IndicConformer (INT8)",
+        "runtime": "sherpa-onnx",
         "precision": "int8",
-        "desc": "Conformer-CTC trained specifically on 22 Indic languages.",
+        "desc": "Conformer-CTC 120M parameter model fine-tuned on Indic corpora.",
     },
     "whisper_tiny": {
-        "display_name": "OpenAI Whisper Tiny",
+        "display_name": "OpenAI Whisper Tiny (INT8)",
         "runtime": "faster-whisper (CTranslate2)",
         "precision": "int8",
         "desc": "Multilingual 39M parameter model (general multilingual baseline).",
     },
     "whisper_small": {
-        "display_name": "OpenAI Whisper Small",
+        "display_name": "OpenAI Whisper Small (INT8)",
         "runtime": "faster-whisper (CTranslate2)",
         "precision": "int8",
         "desc": "Multilingual 244M parameter model (general multilingual baseline).",
@@ -108,6 +133,21 @@ AVAILABLE_MODELS = {
     },
 }
 
+AVAILABLE_TTS_MODELS = {
+    "ai4bharat_vits": {
+        "display_name": "AI4Bharat Indic-TTS VITS",
+        "runtime": "sherpa-onnx",
+        "precision": "fp32",
+        "desc": "Fast end-to-end VITS acoustic model fine-tuned on Indic speech.",
+    },
+    "mms_vits": {
+        "display_name": "Meta MMS-TTS VITS",
+        "runtime": "sherpa-onnx",
+        "precision": "fp32",
+        "desc": "Meta Massively Multilingual Speech VITS model (16kHz).",
+    },
+}
+
 LANGUAGES = {
     "hi": "Hindi (हिंदी)",
     "ta": "Tamil (தமிழ்)",
@@ -116,26 +156,29 @@ LANGUAGES = {
 
 
 def render_sidebar():
-    st.sidebar.title("🎙️ Offline STT Suite")
-    st.sidebar.caption("Benchmark & Inference for Indic STT Models")
+    st.sidebar.title("🎙️ ITANTRA Benchmark")
+    st.sidebar.caption("Offline Speech Recognition & Synthesis for Indic Languages")
 
     page = st.sidebar.radio(
         "Navigation",
-        ["Single Test", "Benchmark Dashboard"],
+        ["Single STT Test", "Benchmark Dashboard", "TTS Listening Test"],
         index=0,
     )
 
     st.sidebar.divider()
     st.sidebar.markdown("### Model Provenance")
+    st.sidebar.markdown("**STT Models**")
     for m_id, info in AVAILABLE_MODELS.items():
-        st.sidebar.markdown(f"**{info['display_name']}**")
-        st.sidebar.caption(f"Runtime: `{info['runtime']}` | Precision: `{info['precision']}`")
+        st.sidebar.caption(f"• **{info['display_name']}** (`{info['runtime']}` | `{info['precision']}`)")
+
+    st.sidebar.markdown("**TTS Models**")
+    for m_id, info in AVAILABLE_TTS_MODELS.items():
+        st.sidebar.caption(f"• **{info['display_name']}** (`{info['runtime']}` | `{info['precision']}`)")
 
     st.sidebar.divider()
     st.sidebar.info(
-        "**Note on Precision & Architecture**:\n"
-        "Comparisons of RAM and model size reflect different runtimes (`ONNX int8`, `CTranslate2 int8`, `PyTorch fp32`). "
-        "Whisper tiny/small are general multilingual models not fine-tuned on Indic corpora."
+        "**Target Hardware**: 2–3 GB RAM Edge / Android Devices.\n\n"
+        "**Languages**: Hindi (`hi`), Tamil (`ta`), Telugu (`te`)."
     )
     return page
 
@@ -169,7 +212,6 @@ def page_single_test():
             lang_dir_names = {"hi": "hindi", "ta": "tamil", "te": "telugu"}
             target_folder = lang_dir_names.get(lang_code, "hindi")
 
-            # Collect available WAV samples from test_audio and dataset
             preset_files = []
             test_audio_dir = CFG_ROOT / "test_audio" / target_folder
             if test_audio_dir.exists():
@@ -179,7 +221,6 @@ def page_single_test():
             if dataset_audio_dir.exists():
                 preset_files.extend(list(dataset_audio_dir.glob("*.wav")))
 
-            # Also try reading from manifest.csv if present
             manifest_lookup = {}
             if DEFAULT_MANIFEST_PATH.exists():
                 try:
@@ -195,7 +236,6 @@ def page_single_test():
                     pass
 
             if preset_files:
-                # Default selection: for Tamil, select test02 (sample 2)
                 default_idx = 0
                 if lang_code == "ta" and len(preset_files) > 1:
                     default_idx = 1
@@ -212,7 +252,6 @@ def page_single_test():
                 )
                 audio_path = selected_preset
 
-                # Retrieve ground truth reference text
                 ref_file = audio_path.with_suffix(".txt")
                 if ref_file.exists():
                     ref_text = ref_file.read_text(encoding="utf-8").strip()
@@ -230,15 +269,22 @@ def page_single_test():
 
     with col2:
         if audio_path and audio_path.exists():
-            st.markdown("##### Audio Preview")
+            st.markdown("##### 🎧 Audio Preview & Reference Ground Truth")
             st.audio(str(audio_path))
+
             custom_ref = st.text_area(
                 "Ground Truth Reference Text (optional for WER/CER calculation)",
                 value=ref_text,
                 key=f"ref_input_{audio_path}",
+                help="Enter or edit the ground truth reference sentence to evaluate WER/CER accuracy.",
             )
             if custom_ref:
                 ref_text = custom_ref
+
+            if ref_text.strip():
+                st.info(f"**📖 Ground Truth Reference Display**:\n\n> {ref_text.strip()}")
+            else:
+                st.caption("ℹ️ No ground truth reference text provided. Transcription will run without accuracy metrics.")
 
         run_btn = st.button("🚀 Run Transcription", type="primary", use_container_width=True, disabled=(not audio_path or not selected_models))
 
@@ -249,46 +295,36 @@ def page_single_test():
         audio_input = AudioInput.from_wav_file(audio_path)
         mgr = get_model_manager()
 
+        cols = st.columns(len(selected_models))
         results_data = []
 
-        cols = st.columns(len(selected_models))
-
-        for idx, model_key in enumerate(selected_models):
+        for idx, model_name in enumerate(selected_models):
+            info = AVAILABLE_MODELS[model_name]
             with cols[idx]:
-                info = AVAILABLE_MODELS[model_key]
-                st.markdown(f"### {info['display_name']}")
-                st.caption(f"`{info['runtime']}` | `{info['precision']}`")
+                badge_class = "badge-int8" if info["precision"] == "int8" else "badge-fp32"
+                st.markdown(
+                    f"<div class='model-header'>{info['display_name']} "
+                    f"<span class='{badge_class}'>{info['precision'].upper()}</span></div>",
+                    unsafe_allow_html=True,
+                )
 
-                with st.spinner(f"Running {info['display_name']}..."):
+                with st.spinner(f"Transcribing with {model_name}..."):
                     try:
-                        start_cold = time.perf_counter()
-                        engine = mgr.load_stt(lang_code, model_name=model_key)
-                        load_time = time.perf_counter() - start_cold
+                        start_time = time.perf_counter()
+                        engine = mgr.load_stt(lang_code, model_name=model_name)
+                        load_time = time.perf_counter() - start_time
 
                         start_inf = time.perf_counter()
                         res = engine.transcribe(audio_input)
                         inf_time = time.perf_counter() - start_inf
 
-                        wer, cer = compute_accuracy_metrics(ref_text, res.text)
                         ram_mb = get_process_rss_mb()
-                        cfg = mgr.registry.get_stt_config(lang_code, model_name=model_key)
+                        cfg = mgr.registry.get_stt_config(lang_code, model_name=model_name)
                         model_size = get_model_size_mb(cfg.get_absolute_model_path())
 
-                        st.success("Transcription Complete")
-                        st.text_area("Transcript", value=res.text, height=100, key=f"tx_{model_key}")
-
-                        # Metrics grid
-                        mcol1, mcol2 = st.columns(2)
-                        with mcol1:
-                            st.metric("Inference Time", f"{inf_time:.2f}s")
-                            st.metric("RTF", f"{res.rtf:.3f}")
-                            if wer is not None:
-                                st.metric("WER", f"{wer*100:.1f}%")
-                        with mcol2:
-                            st.metric("Cold Load Time", f"{load_time:.2f}s")
-                            st.metric("Process RAM", f"{ram_mb:.0f} MB")
-                            if cer is not None:
-                                st.metric("CER", f"{cer*100:.1f}%")
+                        wer, cer = None, None
+                        if ref_text.strip():
+                            wer, cer = compute_accuracy_metrics(ref_text, res.text)
 
                         score = calculate_weighted_overall_score(
                             wer=wer,
@@ -296,6 +332,19 @@ def page_single_test():
                             ram_mb=ram_mb,
                             model_size_mb=model_size,
                         )
+
+                        st.text_area("Prediction", res.text, height=90, key=f"out_{model_name}")
+
+                        m_col1, m_col2 = st.columns(2)
+                        with m_col1:
+                            st.metric("Latency", f"{inf_time:.2f}s")
+                            st.metric("RTF", f"{res.rtf:.3f}")
+                        with m_col2:
+                            st.metric("RAM (RSS)", f"{ram_mb:.0f} MB")
+                            st.metric("Model Size", f"{model_size:.1f} MB")
+
+                        if wer is not None:
+                            st.markdown(f"**Normalized WER**: `{wer*100:.1f}%` | **CER**: `{cer*100:.1f}%`")
                         if score is not None:
                             st.markdown(f"**Weighted Efficiency Score**: `{score}/100`")
 
@@ -325,145 +374,371 @@ def page_single_test():
 
 def page_benchmark_dashboard():
     st.header("📊 Benchmark Dashboard & Empirical Results")
-    st.markdown("Detailed reproducibility metrics across models, languages, and clean/noisy conditions.")
+    st.markdown("Comprehensive reproducibility metrics for Offline STT and TTS across Hindi, Tamil, and Telugu.")
 
-    results_file = DEFAULT_RESULTS_CSV
+    main_tabs = st.tabs(["🎙️ STT Speech Recognition Benchmark", "🗣️ TTS Speech Synthesis Benchmark"])
 
-    col_btn1, col_btn2 = st.columns([2, 1])
-    with col_btn1:
-        if st.button("▶️ Execute Full Manifest Benchmark Run", type="primary"):
-            with st.spinner("Running dataset benchmark across manifest samples..."):
-                runner = BenchmarkDatasetRunner(
-                    manifest_path=DEFAULT_MANIFEST_PATH,
-                    results_csv_path=DEFAULT_RESULTS_CSV,
-                )
-                if not DEFAULT_MANIFEST_PATH.exists():
-                    st.warning("Manifest file not found. Generating manifest first...")
-                    from dataset.manifest import build_manifest
-                    build_manifest(samples_per_cell=3, download_remote=False)
+    # -------------------------------------------------------------
+    # TAB 1: STT Benchmark
+    # -------------------------------------------------------------
+    with main_tabs[0]:
+        results_file = DEFAULT_RESULTS_CSV
 
-                runner.run_benchmark()
-                st.success("Benchmark run completed and recorded!")
+        col_btn1, _ = st.columns([2, 1])
+        with col_btn1:
+            if st.button("▶️ Execute STT Manifest Benchmark Run", type="primary", key="btn_run_stt_bench"):
+                with st.spinner("Running STT dataset benchmark across manifest samples..."):
+                    runner = BenchmarkDatasetRunner(
+                        manifest_path=DEFAULT_MANIFEST_PATH,
+                        results_csv_path=DEFAULT_RESULTS_CSV,
+                    )
+                    runner.run_benchmark()
+                    st.success("STT Benchmark run completed and recorded!")
+                    st.rerun()
+
+        if not results_file.exists() or results_file.stat().st_size == 0:
+            st.info("No STT benchmark results found yet in `results/results.csv`.")
+        else:
+            df_stt = pd.read_csv(results_file, encoding="utf-8")
+
+            # Filters
+            st.sidebar.markdown("### STT Dashboard Filters")
+            all_runs = df_stt["run_id"].dropna().unique().tolist()
+            selected_run = st.sidebar.selectbox("Filter by Run ID", ["All Runs"] + all_runs, index=0, key="stt_run_filter")
+
+            if selected_run != "All Runs":
+                df_stt = df_stt[df_stt["run_id"] == selected_run]
+
+            all_langs = df_stt["language"].dropna().unique().tolist()
+            selected_langs = st.sidebar.multiselect("Filter Languages", all_langs, default=all_langs, key="stt_lang_filter")
+            if selected_langs:
+                df_stt = df_stt[df_stt["language"].isin(selected_langs)]
+
+            all_conds = df_stt["noise_condition"].dropna().unique().tolist()
+            selected_conds = st.sidebar.multiselect("Filter Conditions", all_conds, default=all_conds, key="stt_cond_filter")
+            if selected_conds:
+                df_stt = df_stt[df_stt["noise_condition"].isin(selected_conds)]
+
+            m1, m2, m3, m4 = st.columns(4)
+            with m1:
+                st.metric("Total Evaluation Rows", len(df_stt))
+            with m2:
+                st.metric("Completed Runs", len(df_stt[df_stt["status"] == "COMPLETED"]))
+            with m3:
+                avg_wer = df_stt["wer"].dropna().mean()
+                st.metric("Mean WER (Normalized)", f"{avg_wer*100:.1f}%" if pd.notnull(avg_wer) else "N/A")
+            with m4:
+                avg_rtf = df_stt["rtf"].dropna().mean()
+                st.metric("Mean RTF", f"{avg_rtf:.3f}" if pd.notnull(avg_rtf) else "N/A")
+
+            tab1, tab2, tab3, tab4 = st.tabs(["Accuracy (WER / CER)", "Speed & Latency (RTF)", "Hardware Footprint (RAM / Disk)", "Overall Weighted Score"])
+            completed_stt = df_stt[df_stt["status"] == "COMPLETED"].copy()
+
+            with tab1:
+                st.markdown("#### Word Error Rate (WER) by Model & Language")
+                if not completed_stt.empty and "wer" in completed_stt.columns:
+                    st.bar_chart(data=completed_stt, x="model_name", y="wer", color="language")
+                    st.caption("Lower WER is better. Evaluated with standardized Unicode NFC normalization and punctuation stripping.")
+                else:
+                    st.info("No completed accuracy data to plot.")
+
+            with tab2:
+                st.markdown("#### Real-Time Factor (RTF) Comparison")
+                if not completed_stt.empty and "rtf" in completed_stt.columns:
+                    st.bar_chart(data=completed_stt, x="model_name", y="rtf", color="language")
+                    st.caption("RTF < 1.0 indicates faster-than-real-time offline inference.")
+
+            with tab3:
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.markdown("#### Peak Process Memory (RAM MB)")
+                    if not completed_stt.empty and "ram_mb" in completed_stt.columns:
+                        st.bar_chart(data=completed_stt, x="model_name", y="ram_mb", color="precision")
+                with c2:
+                    st.markdown("#### Model Size on Disk (MB)")
+                    if not completed_stt.empty and "model_size_mb" in completed_stt.columns:
+                        st.bar_chart(data=completed_stt, x="model_name", y="model_size_mb", color="precision")
+
+            with tab4:
+                st.markdown("#### Composite Weighted Score (0 to 100)")
+                if not completed_stt.empty and "score" in completed_stt.columns:
+                    st.bar_chart(data=completed_stt, x="model_name", y="score", color="language")
+
+            st.divider()
+            st.markdown("### STT Results Data Log")
+            st.dataframe(df_stt, use_container_width=True)
+
+    # -------------------------------------------------------------
+    # TAB 2: TTS Benchmark
+    # -------------------------------------------------------------
+    with main_tabs[1]:
+        tts_results_file = DEFAULT_TTS_RESULTS_CSV
+
+        col_btn_tts, _ = st.columns([2, 1])
+        with col_btn_tts:
+            if st.button("▶️ Execute Full TTS Round-Trip Benchmark Run", type="primary", key="btn_run_tts_bench"):
+                with st.spinner("Running TTS benchmark with IndicConformer judge across Kathbath sentences..."):
+                    tts_runner = TTSBenchmarkDatasetRunner()
+                    tts_runner.run_benchmark(max_samples_per_cell=10)
+                    st.success("TTS Benchmark run completed and recorded!")
+                    st.rerun()
+
+        if not tts_results_file.exists() or tts_results_file.stat().st_size == 0:
+            st.info("No TTS benchmark results found yet in `results/tts_results.csv`. Click above to execute the TTS benchmark runner.")
+        else:
+            df_tts = pd.read_csv(tts_results_file, encoding="utf-8")
+
+            st.info(
+                "ℹ️ **Note on Round-Trip WER**: "
+                "Round-trip WER is a **composite intelligibility proxy metric** computed by synthesizing text with the TTS engine, "
+                "resampling to 16000Hz mono, and re-transcribing via the IndicConformer STT judge. "
+                "Compare **Round-Trip WER** against the **STT Judge Baseline WER** to isolate the error attributable to TTS synthesis."
+            )
+
+            # High-level metrics
+            t1, t2, t3, t4 = st.columns(4)
+            with t1:
+                st.metric("Total Evaluation Cells", len(df_tts))
+            with t2:
+                avg_rt_wer = df_tts["roundtrip_wer"].dropna().mean()
+                st.metric("Mean Round-Trip WER", f"{avg_rt_wer*100:.1f}%" if pd.notnull(avg_rt_wer) else "N/A")
+            with t3:
+                avg_synth_lat = df_tts["synthesis_latency_sec"].dropna().mean()
+                st.metric("Mean Synthesis Latency", f"{avg_synth_lat:.2f}s" if pd.notnull(avg_synth_lat) else "N/A")
+            with t4:
+                avg_tts_rtf = df_tts["rtf"].dropna().mean()
+                st.metric("Mean Synthesis RTF", f"{avg_tts_rtf:.3f}" if pd.notnull(avg_tts_rtf) else "N/A")
+
+            st.markdown("### Comparative Performance Charts")
+            tab_t1, tab_t2, tab_t3 = st.tabs(["Round-Trip WER vs STT Baseline", "Synthesis Speed & RTF", "Hardware Footprint (RAM & Model Size)"])
+
+            completed_tts = df_tts[df_tts["status"] == "COMPLETED"].copy()
+
+            with tab_t1:
+                st.markdown("#### Round-Trip WER vs. STT Judge Baseline WER")
+                if not completed_tts.empty:
+                    cols_to_show = ["tts_model_name", "language", "roundtrip_wer", "stt_judge_baseline_wer", "tts_attributable_wer", "synthesized_audio_duration_sec"]
+                    existing_cols = [c for c in cols_to_show if c in completed_tts.columns]
+                    st.dataframe(
+                        completed_tts[existing_cols].rename(columns={
+                            "tts_model_name": "TTS Model",
+                            "language": "Language",
+                            "roundtrip_wer": "Round-Trip WER",
+                            "stt_judge_baseline_wer": "STT Baseline WER",
+                            "tts_attributable_wer": "TTS-Attributable WER (Δ)",
+                            "synthesized_audio_duration_sec": "Avg Audio Dur (s)",
+                        }),
+                        use_container_width=True,
+                    )
+                    st.bar_chart(data=completed_tts, x="tts_model_name", y="roundtrip_wer", color="language")
+
+            with tab_t2:
+                st.markdown("#### Synthesis Real-Time Factor (RTF)")
+                if not completed_tts.empty and "rtf" in completed_tts.columns:
+                    st.bar_chart(data=completed_tts, x="tts_model_name", y="rtf", color="language")
+                    st.caption("RTF < 1.0 indicates audio is synthesized faster than real-time speech playback.")
+
+            with tab_t3:
+                tc1, tc2 = st.columns(2)
+                with tc1:
+                    st.markdown("#### Peak RAM (MB) — Standalone vs. Combined")
+                    if not completed_tts.empty and "ram_mb_tts_only" in completed_tts.columns:
+                        st.bar_chart(data=completed_tts, x="tts_model_name", y="ram_mb_tts_only", color="language")
+                        st.caption("Standalone TTS RAM (without STT judge loaded).")
+                    elif not completed_tts.empty and "ram_mb" in completed_tts.columns:
+                        st.bar_chart(data=completed_tts, x="tts_model_name", y="ram_mb", color="tts_model_name")
+                with tc2:
+                    st.markdown("#### Model Size on Disk (MB)")
+                    if not completed_tts.empty and "model_size_mb" in completed_tts.columns:
+                        st.bar_chart(data=completed_tts, x="tts_model_name", y="model_size_mb", color="tts_model_name")
+
+            st.divider()
+            st.markdown("### TTS Results Data Log")
+            st.dataframe(df_tts, use_container_width=True)
+
+
+def page_tts_listening_test():
+    st.header("🎧 TTS Interactive Listening & MOS Evaluation")
+    st.markdown("Synthesize Hindi, Tamil, and Telugu sentences side by side using AI4Bharat Indic-TTS and Meta MMS-TTS, evaluate audio naturalness, and log manual MOS ratings (1–5 Stars).")
+
+    col1, col2 = st.columns([1, 1])
+
+    with col1:
+        lang_code = st.selectbox(
+            "Select Language",
+            options=list(LANGUAGES.keys()),
+            format_func=lambda k: LANGUAGES[k],
+            key="tts_test_lang",
+        )
+
+        input_choice = st.radio("Text Input Source", ["Pick from Kathbath Dataset", "Custom Input Text"], horizontal=True)
+
+        selected_text = ""
+        if input_choice == "Pick from Kathbath Dataset":
+            runner = TTSBenchmarkDatasetRunner()
+            sample_sentences = runner.load_manifest_sentences(lang_code, max_samples=10)
+            if sample_sentences:
+                selected_text = st.selectbox("Choose Kathbath Sentence", sample_sentences, key=f"tts_sent_{lang_code}")
+            else:
+                st.info("No sentences found in manifest.")
+        else:
+            default_samples = {
+                "hi": "नमस्ते, यह एक परीक्षण वाक्य है।",
+                "ta": "வணக்கம், இது ஒரு சோதனை வாக்கியம்.",
+                "te": "నమస్కారం, ఇది ఒక పరీక్ష వాక్యం.",
+            }
+            selected_text = st.text_area("Input Text to Synthesize", value=default_samples.get(lang_code, ""), key=f"tts_custom_{lang_code}")
+
+        synth_btn = st.button("🔊 Synthesize Both Models", type="primary", use_container_width=True, disabled=not selected_text.strip())
+
+    with col2:
+        st.markdown("##### Evaluation Guidelines (MOS 1–5)")
+        st.markdown(
+            "⭐ **5 - Excellent**: Completely natural, human-like cadence, correct pronunciation.\n\n"
+            "⭐ **4 - Good**: Clear and easily intelligible with minor synthetic artifacts.\n\n"
+            "⭐ **3 - Fair**: Intelligible, but sounds noticeably robotic or has mild phonetic errors.\n\n"
+            "⭐ **2 - Poor**: Difficult to understand; frequent phonetic or stress errors.\n\n"
+            "⭐ **1 - Unacceptable**: Garbled, unintelligible, or wrong language/phonemes."
+        )
+
+    if synth_btn and selected_text:
+        st.divider()
+        st.subheader("Synthesized Audio Comparison")
+
+        mgr = get_model_manager()
+
+        col_a, col_b = st.columns(2)
+
+        # 1. AI4Bharat Indic-TTS
+        with col_a:
+            st.markdown("### 🇮🇳 AI4Bharat Indic-TTS VITS")
+            with st.spinner("Synthesizing with AI4Bharat Indic-TTS..."):
+                try:
+                    start_t = time.perf_counter()
+                    tts_ai4b = mgr.load_tts(lang_code, "ai4bharat_vits")
+                    audio_ai4b = tts_ai4b.synthesize(selected_text, language=lang_code)
+                    synth_time_ai4b = time.perf_counter() - start_t
+
+                    st.audio(audio_ai4b.samples, sample_rate=audio_ai4b.sample_rate)
+                    st.caption(f"⏱️ Latency: `{synth_time_ai4b:.2f}s` | 🎵 Native SR: `{audio_ai4b.sample_rate}Hz` | ⏱️ RTF: `{synth_time_ai4b/audio_ai4b.duration_sec:.3f}`")
+                    st.session_state["synth_ai4b_audio"] = audio_ai4b
+                    st.session_state["synth_ai4b_time"] = synth_time_ai4b
+                except Exception as e:
+                    st.error(f"AI4Bharat synthesis failed: {e}")
+
+        # 2. Meta MMS-TTS
+        with col_b:
+            st.markdown("### 🌐 Meta MMS-TTS VITS")
+            with st.spinner("Synthesizing with Meta MMS-TTS..."):
+                try:
+                    start_t = time.perf_counter()
+                    tts_mms = mgr.load_tts(lang_code, "mms_vits")
+                    audio_mms = tts_mms.synthesize(selected_text, language=lang_code)
+                    synth_time_mms = time.perf_counter() - start_t
+
+                    st.audio(audio_mms.samples, sample_rate=audio_mms.sample_rate)
+                    st.caption(f"⏱️ Latency: `{synth_time_mms:.2f}s` | 🎵 Native SR: `{audio_mms.sample_rate}Hz` | ⏱️ RTF: `{synth_time_mms/audio_mms.duration_sec:.3f}`")
+                    st.session_state["synth_mms_audio"] = audio_mms
+                    st.session_state["synth_mms_time"] = synth_time_mms
+                except Exception as e:
+                    st.error(f"Meta MMS synthesis failed: {e}")
+
+        st.session_state["last_evaluated_text"] = selected_text
+        st.session_state["last_evaluated_lang"] = lang_code
+
+    if "last_evaluated_text" in st.session_state:
+        st.divider()
+        st.subheader("⭐ Rate Synthesized Audio Quality (MOS)")
+
+        r_col1, r_col2 = st.columns(2)
+        with r_col1:
+            rating_ai4b = st.slider(
+                "AI4Bharat Rating (1-5)",
+                min_value=1,
+                max_value=5,
+                value=4,
+                key="rating_ai4b",
+                help="1 = Unacceptable, 5 = Excellent",
+            )
+        with r_col2:
+            rating_mms = st.slider(
+                "Meta MMS Rating (1-5)",
+                min_value=1,
+                max_value=5,
+                value=3,
+                key="rating_mms",
+                help="1 = Unacceptable, 5 = Excellent",
+            )
+
+        user_comments = st.text_input("Qualitative Notes / Accent Feedback (Optional)", key="mos_comments")
+
+        if st.button("💾 Submit & Record MOS Evaluation", type="primary"):
+            record_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            eval_lang = st.session_state.get("last_evaluated_lang", "hi")
+            eval_text = st.session_state.get("last_evaluated_text", "")
+
+            DEFAULT_MANUAL_MOS_CSV.parent.mkdir(parents=True, exist_ok=True)
+            file_exists = DEFAULT_MANUAL_MOS_CSV.exists()
+
+            with open(DEFAULT_MANUAL_MOS_CSV, "a", newline="", encoding="utf-8") as f:
+                import csv
+                writer = csv.writer(f)
+                if not file_exists or os.path.getsize(DEFAULT_MANUAL_MOS_CSV) == 0:
+                    writer.writerow(["timestamp", "language", "sentence", "model_name", "mos_rating", "comments"])
+                writer.writerow([record_time, eval_lang, eval_text, "ai4bharat_vits", rating_ai4b, user_comments])
+                writer.writerow([record_time, eval_lang, eval_text, "mms_vits", rating_mms, user_comments])
+
+            st.success(f"Evaluation recorded to `results/manual_mos.csv`! (AI4Bharat: {rating_ai4b}⭐, MMS: {rating_mms}⭐)")
+
+    if DEFAULT_MANUAL_MOS_CSV.exists() and os.path.getsize(DEFAULT_MANUAL_MOS_CSV) > 0:
+        st.divider()
+        st.markdown("### 📋 Recorded Manual MOS History")
+        mos_df = pd.read_csv(DEFAULT_MANUAL_MOS_CSV, encoding="utf-8")
+        st.dataframe(mos_df, use_container_width=True)
+
+
+def render_live_logs():
+    """Render collapsible live logs panel at the bottom of the page."""
+    st.markdown("---")
+    with st.expander("📜 Live Execution & System Logs", expanded=False):
+        c1, c2 = st.columns([4, 1])
+        with c1:
+            st.caption(f"Real-time logs from `ai_backend` engines and runners (Persisted at `{DEFAULT_LOG_FILE.name}`).")
+        with c2:
+            if st.button("🔄 Refresh Logs", key="refresh_live_logs_btn"):
                 st.rerun()
 
-    if not results_file.exists() or results_file.stat().st_size == 0:
-        st.info("No benchmark results found yet in `results/results.csv`. Click above to execute the benchmark runner.")
-        return
+        logs = get_recent_logs()
+        if not logs and DEFAULT_LOG_FILE.exists():
+            try:
+                logs = DEFAULT_LOG_FILE.read_text(encoding="utf-8").strip().splitlines()[-50:]
+            except Exception:
+                logs = []
 
-    df = pd.read_csv(results_file, encoding="utf-8")
-
-    # Filters
-    st.sidebar.markdown("### Dashboard Filters")
-    all_runs = df["run_id"].dropna().unique().tolist()
-    selected_run = st.sidebar.selectbox("Filter by Run ID", ["All Runs"] + all_runs, index=0)
-
-    if selected_run != "All Runs":
-        df = df[df["run_id"] == selected_run]
-
-    all_langs = df["language"].dropna().unique().tolist()
-    selected_langs = st.sidebar.multiselect("Filter Languages", all_langs, default=all_langs)
-    if selected_langs:
-        df = df[df["language"].isin(selected_langs)]
-
-    all_conds = df["noise_condition"].dropna().unique().tolist()
-    selected_conds = st.sidebar.multiselect("Filter Conditions", all_conds, default=all_conds)
-    if selected_conds:
-        df = df[df["noise_condition"].isin(selected_conds)]
-
-    st.markdown("---")
-
-    # High-level metrics row
-    m1, m2, m3, m4 = st.columns(4)
-    with m1:
-        st.metric("Total Evaluation Rows", len(df))
-    with m2:
-        completed_count = len(df[df["status"] == "COMPLETED"])
-        st.metric("Completed Runs", completed_count)
-    with m3:
-        avg_wer = df["wer"].dropna().mean()
-        st.metric("Mean WER (Across Models)", f"{avg_wer*100:.1f}%" if pd.notnull(avg_wer) else "N/A")
-    with m4:
-        avg_rtf = df["rtf"].dropna().mean()
-        st.metric("Mean RTF", f"{avg_rtf:.3f}" if pd.notnull(avg_rtf) else "N/A")
-
-    st.markdown("### Comparative Performance Charts")
-
-    tab1, tab2, tab3, tab4 = st.tabs(["Accuracy (WER / CER)", "Speed & Latency (RTF)", "Hardware Footprint (RAM / Disk)", "Overall Weighted Score"])
-
-    completed_df = df[df["status"] == "COMPLETED"].copy()
-
-    with tab1:
-        st.markdown("#### Word Error Rate (WER) by Model & Language")
-        if not completed_df.empty and "wer" in completed_df.columns:
-            st.bar_chart(
-                data=completed_df,
-                x="model_name",
-                y="wer",
-                color="language",
-            )
-            st.caption("Lower WER is better. Whisper models show expected higher WER on Indic languages due to lack of Indic-specific fine-tuning.")
-        else:
-            st.info("No completed accuracy data to plot.")
-
-    with tab2:
-        st.markdown("#### Real-Time Factor (RTF) Comparison")
-        if not completed_df.empty and "rtf" in completed_df.columns:
-            st.bar_chart(
-                data=completed_df,
-                x="model_name",
-                y="rtf",
-                color="language",
-            )
-            st.caption("RTF < 1.0 indicates faster-than-real-time offline inference.")
-        else:
-            st.info("No completed latency data to plot.")
-
-    with tab3:
-        col_c1, col_c2 = st.columns(2)
-        with col_c1:
-            st.markdown("#### Peak Process Memory (RAM MB)")
-            if not completed_df.empty and "ram_mb" in completed_df.columns:
-                st.bar_chart(
-                    data=completed_df,
-                    x="model_name",
-                    y="ram_mb",
-                    color="precision",
-                )
-        with col_c2:
-            st.markdown("#### Model Size on Disk (MB)")
-            if not completed_df.empty and "model_size_mb" in completed_df.columns:
-                st.bar_chart(
-                    data=completed_df,
-                    x="model_name",
-                    y="model_size_mb",
-                    color="precision",
-                )
-        st.info("⚠️ Note: RAM and model size comparisons reflect runtime and precision differences (`int8 onnx` vs `ctranslate2 int8` vs `torch fp32`).")
-
-    with tab4:
-        st.markdown("#### Composite Weighted Score (0 to 100)")
-        st.caption("Weights: Accuracy (WER) 40%, Warm Latency 25%, Memory (RAM) 15%, Model Size 10% (renormalized).")
-        if not completed_df.empty and "score" in completed_df.columns:
-            st.bar_chart(
-                data=completed_df,
-                x="model_name",
-                y="score",
-                color="language",
+        if logs:
+            log_text = "\n".join(logs)
+            st.code(log_text, language="log")
+            st.download_button(
+                "📥 Download Full Log File",
+                data=log_text,
+                file_name="app.log",
+                mime="text/plain",
+                key="download_log_btn",
             )
         else:
-            st.info("No composite score data to plot.")
-
-    st.divider()
-    st.markdown("### Raw Results Data Log")
-    st.dataframe(df, use_container_width=True)
+            st.info("No logs captured yet in this session.")
 
 
 def main():
     page = render_sidebar()
-    if page == "Single Test":
+    if page == "Single STT Test":
         page_single_test()
-    else:
+    elif page == "Benchmark Dashboard":
         page_benchmark_dashboard()
+    elif page == "TTS Listening Test":
+        page_tts_listening_test()
+
+    render_live_logs()
 
 
 if __name__ == "__main__":

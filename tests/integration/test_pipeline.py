@@ -51,12 +51,15 @@ def test_pipeline_unsupported_language_raises_error():
         pipeline.transcribe(audio, language="french")
 
 
-def test_pipeline_tts_vad_stubs_raise_not_implemented():
+def test_pipeline_tts_synthesize_and_vad_stub():
     pipeline = SpeechPipeline()
     audio = AudioInput.from_array([0.1] * 16000, sample_rate=16000)
 
-    with pytest.raises(ServiceNotImplementedError):
-        pipeline.synthesize("hello", language="en")
+    # Real TTS synthesis for Hindi
+    synth_audio = pipeline.synthesize("नमस्ते", language="hi")
+    assert synth_audio.duration_sec > 0
+    assert len(synth_audio.samples) > 0
 
+    # VAD stub still raises ServiceNotImplementedError
     with pytest.raises(ServiceNotImplementedError):
         pipeline.vad_service.detect(audio)

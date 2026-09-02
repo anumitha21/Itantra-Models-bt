@@ -74,6 +74,26 @@ class AudioInput:
         data = np.ascontiguousarray(data, dtype=np.float32)
         return cls(samples=data, sample_rate=sample_rate, duration_sec=duration_sec)
 
+    @classmethod
+    def from_numpy(cls, samples: np.ndarray | list, sample_rate: int = 16000) -> "AudioInput":
+        """Alias for from_array."""
+        return cls.from_array(samples=samples, sample_rate=sample_rate)
+
+    def resample(self, target_sample_rate: int = 16000) -> "AudioInput":
+        """
+        Resample audio samples to target_sample_rate if different, returning a new AudioInput.
+        """
+        if self.sample_rate == target_sample_rate:
+            return self
+
+        gcd = np.gcd(int(self.sample_rate), int(target_sample_rate))
+        up = int(target_sample_rate // gcd)
+        down = int(self.sample_rate // gcd)
+        new_data = scipy.signal.resample_poly(self.samples, up, down).astype(np.float32)
+        new_data = np.ascontiguousarray(new_data, dtype=np.float32)
+        duration_sec = float(len(new_data)) / float(target_sample_rate)
+        return AudioInput(samples=new_data, sample_rate=target_sample_rate, duration_sec=duration_sec)
+
 
 @dataclass
 class TranscriptionResult:

@@ -13,9 +13,12 @@ env/
 models/
 data/
 
-# Temporary files
+# Temporary files & logs
+logs/
 results/temp_*
 *.tmp
+*.log
+.pytest_cache/
 
 # IDE & OS
 .vscode/

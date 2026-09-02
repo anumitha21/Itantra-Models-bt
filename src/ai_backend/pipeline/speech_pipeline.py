@@ -38,11 +38,12 @@ class SpeechPipeline:
         stt_engine = self.model_manager.get_stt(language, model_name=model_name)
         return stt_engine.transcribe(audio)
 
-    def synthesize(self, text: str, language: str = "hi") -> AudioInput:
+    def synthesize(self, text: str, language: str = "hi", model_name: Optional[str] = None) -> AudioInput:
         """
-        Synthesize input text to audio (placeholder for future TTS integration).
+        Synthesize input text to audio using the configured TTS engine.
         """
-        return self.tts_service.synthesize(text, language)
+        tts_engine = self.model_manager.load_tts(language, model_name=model_name)
+        return tts_engine.synthesize(text, language=language)
 
     def process(
         self,

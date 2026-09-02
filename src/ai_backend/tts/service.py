@@ -1,27 +1,24 @@
 """
-TTS Service Placeholder.
+TTS Service Factory for instantiating Text-to-Speech Engines.
 """
 
-from ai_backend.core.exceptions import ServiceNotImplementedError
-from ai_backend.core.types import AudioInput
+from ai_backend.core.config import TTSModelConfig
+from ai_backend.core.exceptions import UnsupportedModel
 from ai_backend.tts.base import BaseTTSEngine
+from ai_backend.tts.vits_engine import VitsTTSEngine
 
 
-class TTSService(BaseTTSEngine):
+class TTSServiceFactory:
     """
-    Placeholder service for future Text-to-Speech integration (e.g. Piper/VITS).
+    Factory for creating BaseTTSEngine instances based on model configuration.
     """
 
-    def load() -> None:
-        raise ServiceNotImplementedError("TTS engine loading is not implemented in Stage 1.")
+    @staticmethod
+    def create_engine(model_config: TTSModelConfig, num_threads: int = 2) -> BaseTTSEngine:
+        name_lower = model_config.name.lower()
+        if name_lower in ["ai4bharat_vits", "mms_vits", "vits", "indic_tts", "mms"]:
+            return VitsTTSEngine(config=model_config, num_threads=num_threads)
+        raise UnsupportedModel(f"Unsupported TTS model engine name '{model_config.name}'.")
 
-    def unload() -> None:
-        pass
 
-    def is_loaded(self) -> bool:
-        return False
-
-    def synthesize(self, text: str, language: str) -> AudioInput:
-        raise ServiceNotImplementedError(
-            "Text-to-Speech synthesis is not implemented in Stage 1."
-        )
+TTSService = TTSServiceFactory

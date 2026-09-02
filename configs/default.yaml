@@ -189,5 +189,108 @@ models:
       source: "Meta AI"
       expected_sample_rate: 16000
 
-  tts: {}
+  tts:
+    # -------------------------------------------------------------
+    # 1. AI4Bharat Indic-TTS VITS (sherpa-onnx ONNX)
+    # -------------------------------------------------------------
+    ai4bharat_vits_hi:
+      name: "ai4bharat_vits"
+      version: "vits-indic-tts-hi-female"
+      language: "hi"
+      path: "models/tts/ai4bharat/hi/model.onnx"
+      tokens_path: "models/tts/ai4bharat/hi/tokens.txt"
+      lexicon_path: "models/tts/ai4bharat/hi/lexicon.txt"
+      rule_fsts_path: "models/tts/ai4bharat/hi/rule.fst"
+      rule_fars_path: "models/tts/ai4bharat/hi/rule.far"
+      data_dir: "models/tts/ai4bharat/hi/espeak-ng-data"
+      quantization: "fp32"
+      format: "onnx"
+      architecture: "VITS"
+      runtime: "sherpa-onnx"
+      source: "AI4Bharat"
+      expected_sample_rate: 22050
+      speaker_id: 0
+
+    ai4bharat_vits_ta:
+      name: "ai4bharat_vits"
+      version: "vits-indic-tts-ta-female"
+      language: "ta"
+      path: "models/tts/ai4bharat/ta/model.onnx"
+      tokens_path: "models/tts/ai4bharat/ta/tokens.txt"
+      lexicon_path: "models/tts/ai4bharat/ta/lexicon.txt"
+      rule_fsts_path: "models/tts/ai4bharat/ta/rule.fst"
+      rule_fars_path: "models/tts/ai4bharat/ta/rule.far"
+      data_dir: "models/tts/ai4bharat/ta/espeak-ng-data"
+      quantization: "fp32"
+      format: "onnx"
+      architecture: "VITS"
+      runtime: "sherpa-onnx"
+      source: "AI4Bharat"
+      expected_sample_rate: 22050
+      speaker_id: 0
+
+    ai4bharat_vits_te:
+      name: "ai4bharat_vits"
+      version: "vits-indic-tts-te-female"
+      language: "te"
+      path: "models/tts/ai4bharat/te/model.onnx"
+      tokens_path: "models/tts/ai4bharat/te/tokens.txt"
+      lexicon_path: "models/tts/ai4bharat/te/lexicon.txt"
+      rule_fsts_path: "models/tts/ai4bharat/te/rule.fst"
+      rule_fars_path: "models/tts/ai4bharat/te/rule.far"
+      data_dir: "models/tts/ai4bharat/te/espeak-ng-data"
+      quantization: "fp32"
+      format: "onnx"
+      architecture: "VITS"
+      runtime: "sherpa-onnx"
+      source: "AI4Bharat"
+      expected_sample_rate: 22050
+      speaker_id: 0
+
+    # -------------------------------------------------------------
+    # 2. Meta MMS-TTS VITS (sherpa-onnx ONNX)
+    # -------------------------------------------------------------
+    mms_vits_hi:
+      name: "mms_vits"
+      version: "vits-mms-hin"
+      language: "hi"
+      path: "models/tts/mms/hi/model.onnx"
+      tokens_path: "models/tts/mms/hi/tokens.txt"
+      quantization: "fp32"
+      format: "onnx"
+      architecture: "VITS"
+      runtime: "sherpa-onnx"
+      source: "Meta AI"
+      expected_sample_rate: 16000
+      speaker_id: 0
+
+    mms_vits_ta:
+      name: "mms_vits"
+      version: "vits-mms-tam"
+      language: "ta"
+      path: "models/tts/mms/ta/model.onnx"
+      tokens_path: "models/tts/mms/ta/tokens.txt"
+      quantization: "fp32"
+      format: "onnx"
+      architecture: "VITS"
+      runtime: "sherpa-onnx"
+      source: "Meta AI"
+      expected_sample_rate: 16000
+      speaker_id: 0
+
+    mms_vits_te:
+      name: "mms_vits"
+      version: "vits-mms-tel"
+      language: "te"
+      path: "models/tts/mms/te/model.onnx"
+      tokens_path: "models/tts/mms/te/tokens.txt"
+      quantization: "fp32"
+      format: "onnx"
+      architecture: "VITS"
+      runtime: "sherpa-onnx"
+      source: "Meta AI"
+      expected_sample_rate: 16000
+      speaker_id: 0
+
   vad: {}
+

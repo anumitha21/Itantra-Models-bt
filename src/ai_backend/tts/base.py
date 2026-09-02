@@ -12,15 +12,15 @@ class BaseTTSEngine(ABC):
     """
 
     @abstractmethod
-    def load() -> None:
+    def load(self) -> None:
         pass
 
     @abstractmethod
-    def unload() -> None:
+    def unload(self) -> None:
         pass
 
     @abstractmethod
-    def is_loaded() -> bool:
+    def is_loaded(self) -> bool:
         pass
 
     @abstractmethod

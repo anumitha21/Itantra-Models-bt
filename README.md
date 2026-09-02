@@ -217,3 +217,39 @@ To add any new STT engine:
    ```
 
 4. **Add Unit Test**: Add a test in `tests/unit/test_<engine_name>.py` validating initialization, metadata, and empty input handling.
+
+---
+
+## 10. Text-to-Speech (TTS) Architecture & Evaluation
+
+The benchmark suite includes an end-to-end, offline Text-to-Speech (TTS) pipeline supporting **Hindi (`hi`)**, **Tamil (`ta`)**, and **Telugu (`te`)**.
+
+### Models Evaluated
+- **AI4Bharat Indic-TTS VITS** (`ai4bharat_vits`): Multi-speaker VITS acoustic model optimized for Indic languages (native output sample rate: 24,000 Hz).
+- **Meta MMS-TTS VITS** (`mms_vits`): Massively Multilingual Speech VITS model (native output sample rate: 16,000 Hz).
+
+### Evaluation Methodology
+
+1. **Round-Trip Intelligibility Testing (Automated Proxy)**:
+   - For each Kathbath reference sentence, text is synthesized into waveform audio by the TTS engine.
+   - The synthesized audio is **explicitly resampled to 16,000 Hz mono** (matching the input specification of the ASR judge).
+   - The resampled audio is fed into the corresponding language's **IndicConformer STT Engine** (`IndicConformerSTTEngine`).
+   - The transcribed output is normalized (Unicode NFC, lowercase, punctuation/danda removal) and compared against the original input sentence to compute **Round-Trip WER & CER**.
+   - > [!NOTE]
+     > **Composite Metric Context**: Round-trip WER is a composite metric combining TTS synthesis intelligibility with STT recognition accuracy. It is logged in `results/tts_results.csv` alongside `stt_judge_baseline_wer` (the clean speech dictation baseline of the STT judge) to isolate synthesis distortion from ASR judge error.
+
+2. **Perceptual Listening & MOS Evaluation (Interactive UI)**:
+   - Accessible via the **"TTS Listening Test"** page in the Streamlit UI (`streamlit run ui/app.py`).
+   - Allows side-by-side audio playback of AI4Bharat vs. MMS-TTS on Kathbath sentences or custom text prompts.
+   - Evaluators record 1–5 Star Mean Opinion Score (MOS) ratings and accent commentary directly to `results/manual_mos.csv`.
+   - > [!NOTE]
+     > **UTMOS Model Status**: Automatic neural MOS estimators (like UTMOS) require heavy GPU CUDA environments and unpinned dependencies. Offline human perceptual MOS testing (1–5 scale) provides the highest fidelity qualitative evaluation for Indic speech naturalness.
+
+### Running the TTS Benchmark
+
+To execute the offline TTS benchmark matrix runner:
+
+```bash
+python benchmark/tts_dataset_runner.py --num-samples 10
+```
+Outputs are recorded to `results/tts_results.csv`.

@@ -41,13 +41,72 @@ class STTModelConfig:
 
 
 @dataclass
+class TTSModelConfig:
+    name: str = "ai4bharat_vits"
+    version: str = "1.0.0"
+    language: str = "hi"
+    path: str = "models/tts/ai4bharat/hi/model.onnx"
+    tokens_path: str = "models/tts/ai4bharat/hi/tokens.txt"
+    lexicon_path: Optional[str] = None
+    data_dir: Optional[str] = None
+    dict_dir: Optional[str] = None
+    rule_fsts_path: Optional[str] = None
+    rule_fars_path: Optional[str] = None
+    quantization: str = "fp32"
+    format: str = "onnx"
+    architecture: str = "VITS"
+    runtime: str = "sherpa-onnx"
+    source: str = "AI4Bharat"
+    expected_sample_rate: int = 22050
+    speaker_id: int = 0
+    noise_scale: float = 0.667
+    noise_scale_w: float = 0.8
+    length_scale: float = 1.0
+    device: str = "cpu"
+
+    def get_absolute_model_path(self, base_dir: Path = PROJECT_ROOT) -> Path:
+        p = Path(self.path)
+        return p if p.is_absolute() else base_dir / p
+
+    def get_absolute_tokens_path(self, base_dir: Path = PROJECT_ROOT) -> Path:
+        p = Path(self.tokens_path)
+        return p if p.is_absolute() else base_dir / p
+
+    def get_absolute_lexicon_path(self, base_dir: Path = PROJECT_ROOT) -> Optional[Path]:
+        if not self.lexicon_path:
+            return None
+        p = Path(self.lexicon_path)
+        return p if p.is_absolute() else base_dir / p
+
+    def get_absolute_data_dir(self, base_dir: Path = PROJECT_ROOT) -> Optional[Path]:
+        if not self.data_dir:
+            return None
+        p = Path(self.data_dir)
+        return p if p.is_absolute() else base_dir / p
+
+    def get_absolute_rule_fsts_path(self, base_dir: Path = PROJECT_ROOT) -> Optional[Path]:
+        if not self.rule_fsts_path:
+            return None
+        p = Path(self.rule_fsts_path)
+        return p if p.is_absolute() else base_dir / p
+
+    def get_absolute_rule_fars_path(self, base_dir: Path = PROJECT_ROOT) -> Optional[Path]:
+        if not self.rule_fars_path:
+            return None
+        p = Path(self.rule_fars_path)
+        return p if p.is_absolute() else base_dir / p
+
+
+@dataclass
 class AppConfig:
     models_dir: Path = PROJECT_ROOT / "models"
     results_csv: Path = PROJECT_ROOT / "results" / "results.csv"
+    tts_results_csv: Path = PROJECT_ROOT / "results" / "tts_results.csv"
     num_threads: int = 2
     sample_rate: int = 16000
     log_level: str = "INFO"
     stt_models: Dict[str, STTModelConfig] = field(default_factory=dict)
+    tts_models: Dict[str, TTSModelConfig] = field(default_factory=dict)
     raw_config: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -62,10 +121,10 @@ class AppConfig:
         sample_rate = int(raw.get("sample_rate", 16000))
         log_level = os.getenv("LOG_LEVEL", raw.get("log_level", "INFO"))
 
+        # 1. Parse STT models
         stt_models_cfg: Dict[str, STTModelConfig] = {}
         raw_stt = raw.get("models", {}).get("stt", {})
 
-        # Default fallback models if config file doesn't define them
         if not raw_stt:
             raw_stt = {
                 "hi": {
@@ -105,10 +164,42 @@ class AppConfig:
                 device=item.get("device", "cpu"),
             )
 
+        # 2. Parse TTS models
+        tts_models_cfg: Dict[str, TTSModelConfig] = {}
+        raw_tts = raw.get("models", {}).get("tts", {})
+
+        for model_key, item in raw_tts.items():
+            lang = item.get("language", model_key.split("_")[-1] if "_" in model_key else model_key).lower()
+            name = item.get("name", "ai4bharat_vits")
+            tts_models_cfg[model_key.lower()] = TTSModelConfig(
+                name=name,
+                version=item.get("version", "1.0.0"),
+                language=lang,
+                path=item.get("path", f"models/tts/{name}/{lang}/model.onnx"),
+                tokens_path=item.get("tokens_path", f"models/tts/{name}/{lang}/tokens.txt"),
+                lexicon_path=item.get("lexicon_path"),
+                data_dir=item.get("data_dir"),
+                dict_dir=item.get("dict_dir"),
+                rule_fsts_path=item.get("rule_fsts_path"),
+                rule_fars_path=item.get("rule_fars_path"),
+                quantization=item.get("quantization", "fp32"),
+                format=item.get("format", "onnx"),
+                architecture=item.get("architecture", "VITS"),
+                runtime=item.get("runtime", "sherpa-onnx"),
+                source=item.get("source", "AI4Bharat" if "ai4bharat" in name else "Meta AI"),
+                expected_sample_rate=int(item.get("expected_sample_rate", 22050)),
+                speaker_id=int(item.get("speaker_id", 0)),
+                noise_scale=float(item.get("noise_scale", 0.667)),
+                noise_scale_w=float(item.get("noise_scale_w", 0.8)),
+                length_scale=float(item.get("length_scale", 1.0)),
+                device=item.get("device", "cpu"),
+            )
+
         return cls(
             num_threads=num_threads,
             sample_rate=sample_rate,
             log_level=log_level,
             stt_models=stt_models_cfg,
+            tts_models=tts_models_cfg,
             raw_config=raw,
         )
