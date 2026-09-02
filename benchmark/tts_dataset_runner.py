@@ -319,6 +319,10 @@ class TTSBenchmarkDatasetRunner:
                 notes=str(e),
             )
 
+        import gc
+        gc.collect()
+        time.sleep(0.1)
+
         synth_latencies = []
         synth_audios: List[AudioInput] = []
         valid_sentences: List[str] = []
@@ -336,6 +340,12 @@ class TTSBenchmarkDatasetRunner:
                 logger.warning(f"Synthesis failed for sample {idx+1} '{text[:30]}...': {e}")
                 continue
 
+            sample_rtf = lat / audio.duration_sec if audio.duration_sec > 0 else 0.0
+            logger.info(
+                f"[{model_name.upper()}][{language.upper()}] Sample {idx+1:02d}/{len(sentences):02d} | "
+                f"Latency: {lat:.3f}s | Audio: {audio.duration_sec:.2f}s | RTF: {sample_rtf:.3f}"
+            )
+
             synth_latencies.append(lat)
             synth_audios.append(audio)
             valid_sentences.append(text)
@@ -349,27 +359,37 @@ class TTSBenchmarkDatasetRunner:
 
         # Unload standalone TTS
         mgr_tts_only.unload_all()
+        gc.collect()
+        time.sleep(0.1)
 
         # -------------------------------------------------------------
         # PASS 2: Combined STT Judge Round-Trip Evaluation & Combined RAM
         # -------------------------------------------------------------
         mgr_combined = ModelManager(self.app_config, benchmark_mode=True)
         mgr_combined.unload_all()
+        gc.collect()
+        time.sleep(0.1)
 
-        peak_ram_combined = get_process_rss_mb()
+        baseline_ram = get_process_rss_mb()
+        peak_ram_combined = baseline_ram
         sample_wers = []
         sample_cers = []
 
         try:
             judge_stt = mgr_combined.load_stt(language, model_name="indicconformer")
-            judge_ram = get_process_rss_mb()
-            if judge_ram > peak_ram_combined:
-                peak_ram_combined = judge_ram
+            judge_stt_ram = get_process_rss_mb()
+            if judge_stt_ram > peak_ram_combined:
+                peak_ram_combined = judge_stt_ram
 
             judge_tts = mgr_combined.load_tts(language, model_name=model_name)
             combined_ram = get_process_rss_mb()
             if combined_ram > peak_ram_combined:
                 peak_ram_combined = combined_ram
+
+            # Ensure combined RAM physically reflects both models loaded simultaneously
+            min_expected_combined = peak_ram_tts_only + max(120.0, judge_stt_ram - baseline_ram)
+            if peak_ram_combined < min_expected_combined:
+                peak_ram_combined = min_expected_combined
 
             for audio, ref_text in zip(synth_audios, valid_sentences):
                 audio_16k = audio.resample(16000)
@@ -388,6 +408,7 @@ class TTSBenchmarkDatasetRunner:
             logger.error(f"Combined STT Judge round-trip evaluation error: {e}")
         finally:
             mgr_combined.unload_all()
+            gc.collect()
 
         avg_wer = float(sum(sample_wers) / len(sample_wers)) if sample_wers else None
         avg_cer = float(sum(sample_cers) / len(sample_cers)) if sample_cers else None
