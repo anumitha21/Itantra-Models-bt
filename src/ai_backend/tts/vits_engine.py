@@ -40,6 +40,13 @@ class VitsTTSEngine(BaseTTSEngine):
         model_path = self.config.get_absolute_model_path()
         tokens_path = self.config.get_absolute_tokens_path()
 
+        if not model_path.exists() or not tokens_path.exists():
+            try:
+                from ai_backend.models.downloader import ensure_tts_model
+                ensure_tts_model(self.config.language, self.config.name)
+            except Exception as e:
+                logger.warning(f"Auto-download attempt for VITS TTS model failed: {e}")
+
         if not model_path.exists():
             raise ModelLoadError(
                 f"VITS TTS model file not found at: {model_path.resolve()}"

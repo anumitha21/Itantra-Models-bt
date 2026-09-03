@@ -91,19 +91,30 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-def get_model_manager():
-    """Retrieve ModelManager in benchmark mode for UI testing with dynamic reload safeguard."""
-    mgr = st.session_state.get("model_manager")
-    if mgr is None or not hasattr(mgr, "load_tts"):
-        import ai_backend.models.model_manager as mm_mod
-        try:
-            importlib.reload(mm_mod)
-        except Exception:
-            pass
-        config = AppConfig.load()
-        mgr = mm_mod.ModelManager(config, benchmark_mode=True)
-        st.session_state["model_manager"] = mgr
-    return mgr
+@st.cache_resource(show_spinner=False)
+def get_cached_model_manager() -> ModelManager:
+    """Retrieve and cache ModelManager globally in memory across all Streamlit sessions and reruns."""
+    config = AppConfig.load()
+    return ModelManager(config, benchmark_mode=True)
+
+
+@st.cache_resource(show_spinner="Loading AI STT model into memory...")
+def get_cached_stt_engine(language: str, model_name: str):
+    """Retrieve and cache loaded STT engine in memory across all user interactions and reruns."""
+    mgr = get_cached_model_manager()
+    return mgr.get_stt(language, model_name=model_name)
+
+
+@st.cache_resource(show_spinner="Loading AI TTS model into memory...")
+def get_cached_tts_engine(language: str, model_name: str):
+    """Retrieve and cache loaded TTS engine in memory across all user interactions and reruns."""
+    mgr = get_cached_model_manager()
+    return mgr.get_tts(language, model_name=model_name)
+
+
+def get_model_manager() -> ModelManager:
+    """Retrieve ModelManager in benchmark mode for UI testing."""
+    return get_cached_model_manager()
 
 
 AVAILABLE_MODELS = {
@@ -311,7 +322,7 @@ def page_single_test():
                 with st.spinner(f"Transcribing with {model_name}..."):
                     try:
                         start_time = time.perf_counter()
-                        engine = mgr.load_stt(lang_code, model_name=model_name)
+                        engine = get_cached_stt_engine(lang_code, model_name=model_name)
                         load_time = time.perf_counter() - start_time
 
                         start_inf = time.perf_counter()
@@ -631,12 +642,12 @@ def page_tts_listening_test():
             stt_text_ai4b = ""
             try:
                 t0 = time.perf_counter()
-                tts_ai4b = mgr.load_tts(lang_code, "ai4bharat_vits")
+                tts_ai4b = get_cached_tts_engine(lang_code, "ai4bharat_vits")
                 audio_ai4b = tts_ai4b.synthesize(selected_text, language=lang_code)
                 synth_time_ai4b = time.perf_counter() - t0
 
                 # STT Judge Verification (16kHz)
-                stt_judge = mgr.load_stt(lang_code, "indicconformer")
+                stt_judge = get_cached_stt_engine(lang_code, "indicconformer")
                 audio_ai4b_16k = audio_ai4b.resample(target_sample_rate=16000)
                 stt_res_ai4b = stt_judge.transcribe(audio_ai4b_16k)
                 stt_text_ai4b = stt_res_ai4b.text
@@ -653,12 +664,12 @@ def page_tts_listening_test():
             stt_text_mms = ""
             try:
                 t0 = time.perf_counter()
-                tts_mms = mgr.load_tts(lang_code, "mms_vits")
+                tts_mms = get_cached_tts_engine(lang_code, "mms_vits")
                 audio_mms = tts_mms.synthesize(selected_text, language=lang_code)
                 synth_time_mms = time.perf_counter() - t0
 
                 # STT Judge Verification (16kHz)
-                stt_judge = mgr.load_stt(lang_code, "indicconformer")
+                stt_judge = get_cached_stt_engine(lang_code, "indicconformer")
                 audio_mms_16k = audio_mms.resample(target_sample_rate=16000)
                 stt_res_mms = stt_judge.transcribe(audio_mms_16k)
                 stt_text_mms = stt_res_mms.text

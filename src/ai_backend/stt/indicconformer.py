@@ -29,6 +29,13 @@ class IndicConformerSTTEngine(BaseSTTEngine):
         self._recognizer: Optional[sherpa_onnx.OfflineRecognizer] = None
 
     def _validate_paths(self) -> None:
+        if not self.model_path.exists() or not self.tokens_path.exists():
+            try:
+                from ai_backend.models.downloader import ensure_indicconformer_model
+                ensure_indicconformer_model(self.config.language)
+            except Exception as e:
+                logger.warning(f"Auto-download attempt for IndicConformer failed: {e}")
+
         if not self.model_path.exists():
             raise ModelNotFound(
                 f"Model ONNX file not found at: {self.model_path.resolve()}\n"
