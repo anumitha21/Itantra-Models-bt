@@ -9,16 +9,21 @@ venv/
 ENV/
 env/
 
-# Large Pretrained Model Weights & Raw Audio Datasets (ignored)
+# Large Pretrained Model Weights (ignored - auto-downloaded on demand)
 /models/stt/**
 /models/tts/**
 /models/whisper/**
 /models/mms/**
-/data/**
 *.onnx
 *.bin
 *.pt
 *.safetensors
+
+# Large raw archive dumps (ignored)
+*.tar
+*.m4a
+/data/kathbath/clean/audio/**
+/data/kathbath/noisy/audio/**
 
 # Temporary files & logs
 logs/
