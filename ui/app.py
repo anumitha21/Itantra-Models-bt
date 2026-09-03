@@ -31,7 +31,6 @@ except Exception:
 get_logger = getattr(backend_logging, "get_logger", None)
 DEFAULT_LOG_FILE = getattr(backend_logging, "DEFAULT_LOG_FILE", CFG_ROOT / "logs" / "app.log")
 get_recent_logs = getattr(backend_logging, "get_recent_logs", lambda: [])
-from ai_backend.pipeline.speech_pipeline import SpeechPipeline
 from ai_backend.models.model_manager import ModelManager
 from ai_backend.benchmark.metrics import (
     compute_accuracy_metrics,

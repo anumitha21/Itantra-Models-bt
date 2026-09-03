@@ -23,7 +23,7 @@ class SpeechPipeline:
     ):
         self.app_config = app_config or AppConfig.load()
         self.model_manager = model_manager or ModelManager(self.app_config)
-        self.tts_service = TTSService()
+        self.tts_service = TTSService
         self.vad_service = VADService()
 
     def transcribe(
