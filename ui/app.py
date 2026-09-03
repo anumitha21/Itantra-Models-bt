@@ -6,6 +6,11 @@ Features:
   3. TTS Listening Test: Side-by-side interactive speech synthesis for AI4Bharat Indic-TTS & Meta MMS-TTS with manual 1-5 star MOS evaluation.
 """
 
+import utils.net
+import utils.clients
+import utils.http_session
+import utils.transport
+import utils.session
 import os
 import sys
 import time
