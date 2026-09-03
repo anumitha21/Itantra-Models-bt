@@ -9,9 +9,16 @@ venv/
 ENV/
 env/
 
-# Large Pretrained Models & Raw Audio Datasets (do not commit to Git)
-models/
-data/
+# Large Pretrained Model Weights & Raw Audio Datasets (ignored)
+/models/stt/**
+/models/tts/**
+/models/whisper/**
+/models/mms/**
+/data/**
+*.onnx
+*.bin
+*.pt
+*.safetensors
 
 # Temporary files & logs
 logs/
@@ -25,4 +32,3 @@ results/temp_*
 .idea/
 .DS_Store
 Thumbs.db
-
