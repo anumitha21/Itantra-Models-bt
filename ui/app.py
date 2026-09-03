@@ -47,7 +47,7 @@ logger = get_logger("StreamlitUI") if get_logger else None
 
 st.set_page_config(
     page_title="ITANTRA Indic STT & TTS Benchmark",
-    page_icon="🎙️",
+    
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -156,7 +156,7 @@ LANGUAGES = {
 
 
 def render_sidebar():
-    st.sidebar.title("🎙️ ITANTRA Benchmark")
+    st.sidebar.title("ITANTRA Benchmark")
     st.sidebar.caption("Offline Speech Recognition & Synthesis for Indic Languages")
 
     page = st.sidebar.radio(
@@ -184,7 +184,7 @@ def render_sidebar():
 
 
 def page_single_test():
-    st.header("⚡ Single Audio Inference & Model Comparison")
+    st.header(" Single Audio Inference & Model Comparison")
     st.markdown("Transcribe an audio sample across one or more offline engines and compare accuracy, latency, and resource footprint.")
 
     col1, col2 = st.columns([1, 1])
@@ -282,11 +282,11 @@ def page_single_test():
                 ref_text = custom_ref
 
             if ref_text.strip():
-                st.info(f"**📖 Ground Truth Reference Display**:\n\n> {ref_text.strip()}")
+                st.info(f"** Ground Truth Reference Display**:\n\n> {ref_text.strip()}")
             else:
-                st.caption("ℹ️ No ground truth reference text provided. Transcription will run without accuracy metrics.")
+                st.caption(" No ground truth reference text provided. Transcription will run without accuracy metrics.")
 
-        run_btn = st.button("🚀 Run Transcription", type="primary", use_container_width=True, disabled=(not audio_path or not selected_models))
+        run_btn = st.button(" Run Transcription", type="primary", use_container_width=True, disabled=(not audio_path or not selected_models))
 
     if run_btn and audio_path:
         st.divider()
@@ -373,10 +373,10 @@ def page_single_test():
 
 
 def page_benchmark_dashboard():
-    st.header("📊 Benchmark Dashboard & Empirical Results")
+    st.header(" Benchmark Dashboard & Empirical Results")
     st.markdown("Comprehensive reproducibility metrics for Offline STT and TTS across Hindi, Tamil, and Telugu.")
 
-    main_tabs = st.tabs(["🎙️ STT Speech Recognition Benchmark", "🗣️ TTS Speech Synthesis Benchmark"])
+    main_tabs = st.tabs([" STT Speech Recognition Benchmark", " TTS Speech Synthesis Benchmark"])
 
     # -------------------------------------------------------------
     # TAB 1: STT Benchmark
@@ -386,7 +386,7 @@ def page_benchmark_dashboard():
 
         col_btn1, _ = st.columns([2, 1])
         with col_btn1:
-            if st.button("▶️ Execute STT Manifest Benchmark Run", type="primary", key="btn_run_stt_bench"):
+            if st.button(" Execute STT Manifest Benchmark Run", type="primary", key="btn_run_stt_bench"):
                 with st.spinner("Running STT dataset benchmark across manifest samples..."):
                     runner = BenchmarkDatasetRunner(
                         manifest_path=DEFAULT_MANIFEST_PATH,
@@ -480,7 +480,7 @@ def page_benchmark_dashboard():
 
         col_btn_tts, _ = st.columns([2, 1])
         with col_btn_tts:
-            if st.button("▶️ Execute Full TTS Round-Trip Benchmark Run", type="primary", key="btn_run_tts_bench"):
+            if st.button(" Execute Full TTS Round-Trip Benchmark Run", type="primary", key="btn_run_tts_bench"):
                 with st.spinner("Running TTS benchmark with IndicConformer judge across Kathbath sentences..."):
                     tts_runner = TTSBenchmarkDatasetRunner()
                     tts_runner.run_benchmark(max_samples_per_cell=10)
@@ -502,7 +502,7 @@ def page_benchmark_dashboard():
                 df_tts = df_tts[df_tts["run_id"] == selected_tts_run]
 
             st.info(
-                "ℹ️ **Note on Round-Trip WER**: "
+                " **Note on Round-Trip WER**: "
                 "Round-trip WER is a **composite intelligibility proxy metric** computed by synthesizing text with the TTS engine, "
                 "resampling to 16000Hz mono, and re-transcribing via the IndicConformer STT judge. "
                 "Compare **Round-Trip WER** against the **STT Judge Baseline WER** to isolate the error attributable to TTS synthesis."
@@ -571,7 +571,7 @@ def page_benchmark_dashboard():
 
 
 def page_tts_listening_test():
-    st.header("🎧 TTS Interactive Listening & MOS Evaluation")
+    st.header(" TTS Interactive Listening & MOS Evaluation")
     st.markdown("Synthesize Hindi, Tamil, and Telugu sentences side by side using AI4Bharat Indic-TTS and Meta MMS-TTS, evaluate audio naturalness, and log manual MOS ratings (1–5 Stars).")
 
     col1, col2 = st.columns([1, 1])
@@ -602,21 +602,21 @@ def page_tts_listening_test():
             }
             selected_text = st.text_area("Input Text to Synthesize", value=default_samples.get(lang_code, ""), key=f"tts_custom_{lang_code}")
 
-        synth_btn = st.button("🔊 Synthesize Both Models", type="primary", use_container_width=True, disabled=not selected_text.strip())
+        synth_btn = st.button(" Synthesize Both Models", type="primary", use_container_width=True, disabled=not selected_text.strip())
 
     with col2:
         st.markdown("##### Evaluation Guidelines (MOS 1–5)")
         st.markdown(
-            "⭐ **5 - Excellent**: Completely natural, human-like cadence, correct pronunciation.\n\n"
-            "⭐ **4 - Good**: Clear and easily intelligible with minor synthetic artifacts.\n\n"
-            "⭐ **3 - Fair**: Intelligible, but sounds noticeably robotic or has mild phonetic errors.\n\n"
-            "⭐ **2 - Poor**: Difficult to understand; frequent phonetic or stress errors.\n\n"
-            "⭐ **1 - Unacceptable**: Garbled, unintelligible, or wrong language/phonemes."
+            " **5 - Excellent**: Completely natural, human-like cadence, correct pronunciation.\n\n"
+            " **4 - Good**: Clear and easily intelligible with minor synthetic artifacts.\n\n"
+            " **3 - Fair**: Intelligible, but sounds noticeably robotic or has mild phonetic errors.\n\n"
+            " **2 - Poor**: Difficult to understand; frequent phonetic or stress errors.\n\n"
+            " **1 - Unacceptable**: Garbled, unintelligible, or wrong language/phonemes."
         )
 
     if synth_btn and selected_text:
         st.divider()
-        st.subheader("🎧 Synthesized Audio & Intelligibility Comparison")
+        st.subheader(" Synthesized Audio & Intelligibility Comparison")
 
         mgr = get_model_manager()
 
@@ -710,7 +710,7 @@ def page_tts_listening_test():
             speed_delta = ((rtf_mms - rtf_ai4b) / rtf_mms * 100) if rtf_mms > 0 else 0.0
 
             st.info(
-                f"📊 **Model Summary Comparison** (`{LANGUAGES.get(data['lang_code'], data['lang_code'].upper())}`):\n\n"
+                f" **Model Summary Comparison** (`{LANGUAGES.get(data['lang_code'], data['lang_code'].upper())}`):\n\n"
                 f"- **Synthesis Speed**: AI4Bharat (`RTF: {rtf_ai4b:.3f}`) vs. Meta MMS (`RTF: {rtf_mms:.3f}`) "
                 f"— {'AI4Bharat was ' + f'{abs(speed_delta):.1f}% faster' if speed_delta > 0 else 'Meta MMS was ' + f'{abs(speed_delta):.1f}% faster'}.\n"
                 f"- **Acoustic Fidelity**: AI4Bharat native output is **24,000 Hz** (high fidelity) vs. Meta MMS **16,000 Hz** (wideband)."
@@ -754,7 +754,7 @@ def page_tts_listening_test():
         # 2. Meta MMS-TTS Card
         with col_b:
             with st.container(border=True):
-                st.markdown("### 🌐 Meta MMS-TTS VITS")
+                st.markdown("###  Meta MMS-TTS VITS")
                 st.caption("Architecture: `VITS Multi-Lingual` | Precision: `FP32` | Runtime: `sherpa-onnx` | Model Size: `108.8 MB`")
 
                 if mms_error:
@@ -766,20 +766,20 @@ def page_tts_listening_test():
                     rtf_mms = synth_time_mms / audio_mms.duration_sec if audio_mms.duration_sec > 0 else 0.0
                     m1, m2 = st.columns(2)
                     with m1:
-                        st.metric("⏱️ Synthesis Latency", f"{synth_time_mms:.2f} s")
-                        st.metric("🎵 Audio Duration", f"{audio_mms.duration_sec:.2f} s")
+                        st.metric(" Synthesis Latency", f"{synth_time_mms:.2f} s")
+                        st.metric(" Audio Duration", f"{audio_mms.duration_sec:.2f} s")
                     with m2:
-                        st.metric("⚡ Real-Time Factor (RTF)", f"{rtf_mms:.3f}", delta="< 1.0 (Real-time)" if rtf_mms <= 1.0 else "Slow", delta_color="inverse")
-                        st.metric("🔊 Native Sample Rate", f"{audio_mms.sample_rate:,} Hz")
+                        st.metric(" Real-Time Factor (RTF)", f"{rtf_mms:.3f}", delta="< 1.0 (Real-time)" if rtf_mms <= 1.0 else "Slow", delta_color="inverse")
+                        st.metric(" Native Sample Rate", f"{audio_mms.sample_rate:,} Hz")
 
                     st.markdown("---")
-                    st.markdown("##### 🔍 Round-Trip STT Verification (IndicConformer 16kHz)")
+                    st.markdown("#####  Round-Trip STT Verification (IndicConformer 16kHz)")
                     if wer_mms is not None:
                         w_col1, w_col2 = st.columns(2)
                         with w_col1:
-                            st.metric("🎯 Round-Trip WER", f"{wer_mms*100:.1f}%")
+                            st.metric(" Round-Trip WER", f"{wer_mms*100:.1f}%")
                         with w_col2:
-                            st.metric("🔡 Round-Trip CER", f"{cer_mms*100:.1f}%" if cer_mms is not None else "N/A")
+                            st.metric(" Round-Trip CER", f"{cer_mms*100:.1f}%" if cer_mms is not None else "N/A")
 
                     st.markdown("**STT Recognized Text:**")
                     st.code(stt_text_mms if stt_text_mms else "[No text transcribed]", language=None)
@@ -787,7 +787,7 @@ def page_tts_listening_test():
     # MOS Rating Form
     if "last_evaluated_text" in st.session_state:
         st.divider()
-        st.subheader("⭐ Rate Synthesized Audio Quality (MOS)")
+        st.subheader("Rate Synthesized Audio Quality (MOS)")
 
         r_col1, r_col2 = st.columns(2, gap="large")
         with r_col1:
@@ -801,7 +801,7 @@ def page_tts_listening_test():
             )
         with r_col2:
             rating_mms = st.slider(
-                "🌐 Meta MMS Rating (1-5 Stars)",
+                " Meta MMS Rating (1-5 Stars)",
                 min_value=1,
                 max_value=5,
                 value=4,
@@ -811,7 +811,7 @@ def page_tts_listening_test():
 
         user_comments = st.text_input("Qualitative Notes / Accent Feedback (Optional)", key="mos_comments")
 
-        if st.button("💾 Submit & Record MOS Evaluation", type="primary", use_container_width=True):
+        if st.button("Submit & Record MOS Evaluation", type="primary", use_container_width=True):
             record_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
             eval_lang = st.session_state.get("last_evaluated_lang", "hi")
             eval_text = st.session_state.get("last_evaluated_text", "")
@@ -830,11 +830,11 @@ def page_tts_listening_test():
                 writer.writerow([record_time, eval_lang, eval_text, "ai4bharat_vits", rating_ai4b, user_comments])
                 writer.writerow([record_time, eval_lang, eval_text, "mms_vits", rating_mms, user_comments])
 
-            st.success(f"Evaluation recorded to `results/manual_mos.csv`! (AI4Bharat: {rating_ai4b}⭐, MMS: {rating_mms}⭐)")
+            st.success(f"Evaluation recorded to `results/manual_mos.csv`! (AI4Bharat: {rating_ai4b}, MMS: {rating_mms})")
 
     if DEFAULT_MANUAL_MOS_CSV.exists() and os.path.getsize(DEFAULT_MANUAL_MOS_CSV) > 0:
         st.divider()
-        st.markdown("### 📋 Recorded Manual MOS History")
+        st.markdown("###  Recorded Manual MOS History")
         mos_df = pd.read_csv(DEFAULT_MANUAL_MOS_CSV, encoding="utf-8")
         st.dataframe(mos_df, use_container_width=True)
 
@@ -842,12 +842,12 @@ def page_tts_listening_test():
 def render_live_logs():
     """Render collapsible live logs panel at the bottom of the page."""
     st.markdown("---")
-    with st.expander("📜 Live Execution & System Logs", expanded=False):
+    with st.expander(" Execution & System Logs", expanded=False):
         c1, c2 = st.columns([4, 1])
         with c1:
             st.caption(f"Real-time logs from `ai_backend` engines and runners (Persisted at `{DEFAULT_LOG_FILE.name}`).")
         with c2:
-            if st.button("🔄 Refresh Logs", key="refresh_live_logs_btn"):
+            if st.button(" Refresh Logs", key="refresh_live_logs_btn"):
                 st.rerun()
 
         logs = get_recent_logs()
